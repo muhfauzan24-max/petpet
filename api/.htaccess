@@ -1,0 +1,6 @@
+Options -Indexes
+
+# Let PHP handle CORS — remove Apache-set CORS headers to prevent duplicates
+Header always unset Access-Control-Allow-Origin
+Header always unset Access-Control-Allow-Methods
+Header always unset Access-Control-Allow-Headers
