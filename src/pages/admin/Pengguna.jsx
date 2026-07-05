@@ -6,7 +6,7 @@ import { adminAPI } from "../../services/api";
 const links = [
   { href:"/admin", icon:"🏠", label:"Dashboard" },
   { href:"/admin/pengguna", icon:"👥", label:"Pengguna" },
-  { href:"/admin/kios", icon:"🏪", label:"Kelola Kios" },
+  { href:"/admin/kios", icon:"🏪", label:"Kelola Mitra" },
   { href:"/admin/komisi", icon:"💰", label:"Komisi" },
   { href:"/admin/laporan", icon:"📊", label:"Laporan" },
 ];
