@@ -265,9 +265,37 @@ function handleUpdateProfile(): void {
         sendError('Nama lengkap tidak boleh kosong');
     }
     
+    // Simpan foto jika dalam format base64
+    $dbPath = $foto;
+    if (preg_match('/^data:image\/(\w+);base64,/', $foto, $type)) {
+        $fotoData = substr($foto, strpos($foto, ',') + 1);
+        $ext = strtolower($type[1]); // png, jpg, jpeg, gif
+        if (!in_array($ext, ['jpg', 'jpeg', 'gif', 'png'])) {
+            sendError('Format gambar tidak didukung (gunakan JPG, PNG, atau GIF)');
+        }
+        $decoded = base64_decode($fotoData);
+        if ($decoded === false) {
+            sendError('Dekode gambar gagal');
+        }
+        
+        $filename = 'profile_' . $user['id_pengguna'] . '_' . time() . '.' . $ext;
+        $uploadDir = __DIR__ . '/../uploads/';
+        
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+        
+        $filePath = $uploadDir . $filename;
+        if (file_put_contents($filePath, $decoded) === false) {
+            sendError('Gagal menyimpan file gambar ke server');
+        }
+        
+        $dbPath = '/uploads/' . $filename;
+    }
+    
     $db = getDB();
     $stmt = $db->prepare("UPDATE pengguna SET nama_lengkap = ?, no_telepon = ?, foto_profil = ?, kota = ? WHERE id_pengguna = ?");
-    $stmt->execute([$nama, $telepon, $foto, $kota, $user['id_pengguna']]);
+    $stmt->execute([$nama, $telepon, $dbPath, $kota, $user['id_pengguna']]);
     
     // Ambil data terbaru untuk dikirim balik
     $stmtMe = $db->prepare("SELECT id_pengguna, nama_lengkap, email, peran, status, foto_profil, no_telepon, kota, created_at FROM pengguna WHERE id_pengguna = ?");
