@@ -429,3 +429,19 @@ select.form-input { cursor: pointer; }
 .avatar-md { width: 48px; height: 48px; }
 .avatar-lg { width: 64px; height: 64px; }
 .avatar-xl { width: 80px; height: 80px; }
+
+/* ===== RESPONSIVE DASHBOARD LAYOUTS ===== */
+div:has(> .dashboard-sidebar) {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 2rem !important;
+}
+
+@media (max-width: 768px) {
+  div:has(> .dashboard-sidebar) {
+    flex-direction: column !important;
+    gap: 1.25rem !important;
+    padding: 1.25rem 1rem !important;
+  }
+}
+
