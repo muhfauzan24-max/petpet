@@ -24,6 +24,10 @@ switch ($action) {
     case 'me':
         handleMe();
         break;
+    case 'update-profile':
+        if ($method !== 'POST') sendError('Method not allowed', 405);
+        handleUpdateProfile();
+        break;
     case 'change-password':
         if ($method !== 'POST') sendError('Method not allowed', 405);
         handleChangePassword();
@@ -246,4 +250,60 @@ function handleChangePassword(): void {
        ->execute([$hash, $user['id_pengguna']]);
     
     sendSuccess(null, 'Password berhasil diubah');
+}
+
+function handleUpdateProfile(): void {
+    $user = requireAuth();
+    $data = getRequestBody();
+    
+    $nama = trim($data['nama'] ?? '');
+    $telepon = trim($data['telepon'] ?? '');
+    $foto = $data['foto'] ?? '';
+    $kota = trim($data['kota'] ?? '');
+    
+    if (!$nama) {
+        sendError('Nama lengkap tidak boleh kosong');
+    }
+    
+    $db = getDB();
+    $stmt = $db->prepare("UPDATE pengguna SET nama_lengkap = ?, no_telepon = ?, foto_profil = ?, kota = ? WHERE id_pengguna = ?");
+    $stmt->execute([$nama, $telepon, $foto, $kota, $user['id_pengguna']]);
+    
+    // Ambil data terbaru untuk dikirim balik
+    $stmtMe = $db->prepare("SELECT id_pengguna, nama_lengkap, email, peran, status, foto_profil, no_telepon, kota, created_at FROM pengguna WHERE id_pengguna = ?");
+    $stmtMe->execute([$user['id_pengguna']]);
+    $userData = $stmtMe->fetch();
+    
+    // Kios info
+    $kiosInfo = null;
+    $kStmt = $db->prepare("SELECT id_kios AS id, nama_kios AS nama, status FROM kios WHERE id_pengguna = ? LIMIT 1");
+    $kStmt->execute([$userData['id_pengguna']]);
+    $kiosInfo = $kStmt->fetch() ?: null;
+    
+    // Dokter info
+    $dokterInfo = null;
+    $dStmt = $db->prepare("SELECT id_dokter AS id, nama_dokter AS nama, status FROM dokter_hewan WHERE id_pengguna = ? LIMIT 1");
+    $dStmt->execute([$userData['id_pengguna']]);
+    $dokterInfo = $dStmt->fetch() ?: null;
+    
+    // Grooming info
+    $groomingInfo = null;
+    $gStmt = $db->prepare("SELECT id_grooming AS id, nama_usaha AS nama, status FROM penyedia_grooming WHERE id_pengguna = ? LIMIT 1");
+    $gStmt->execute([$userData['id_pengguna']]);
+    $groomingInfo = $gStmt->fetch() ?: null;
+    
+    sendSuccess([
+        'id'        => $userData['id_pengguna'],
+        'nama'      => $userData['nama_lengkap'],
+        'email'     => $userData['email'],
+        'peran'     => $userData['peran'],
+        'status'    => $userData['status'],
+        'foto'      => $userData['foto_profil'],
+        'telepon'   => $userData['no_telepon'],
+        'kota'      => $userData['kota'],
+        'createdAt' => $userData['created_at'],
+        'kios'      => $kiosInfo,
+        'dokter'    => $dokterInfo,
+        'grooming'  => $groomingInfo,
+    ], 'Profil berhasil diperbarui');
 }

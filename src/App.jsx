@@ -20,6 +20,7 @@ import Register from './pages/Register';
 import Login from './pages/Login';
 import Keranjang from './pages/Keranjang';
 import PaymentPage from './pages/PaymentPage';
+import Profile from './pages/Profile';
 
 // Akun (pembeli)
 import AkunDashboard from './pages/akun/Dashboard';
@@ -106,6 +107,7 @@ export default function App() {
             <Route path="/payment/:id" element={<PageLayout><PaymentPage /></PageLayout>} />
             <Route path="/masuk" element={<PageLayout noFooter><Login /></PageLayout>} />
             <Route path="/daftar" element={<PageLayout noFooter><Register /></PageLayout>} />
+            <Route path="/profile" element={<Profile />} />
 
             {/* Akun pembeli */}
             <Route path="/akun" element={<DashLayout><AkunDashboard /></DashLayout>} />

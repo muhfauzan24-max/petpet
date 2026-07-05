@@ -101,6 +101,7 @@ export const authAPI = {
   logout: () => api.post('auth.php?action=logout'),
   me: () => api.get('auth.php?action=me'),
   changePassword: (oldPassword, newPassword) => api.post('auth.php?action=change-password', { oldPassword, newPassword }),
+  updateProfile: (data) => api.post('auth.php?action=update-profile', data),
 };
 
 // ============================================================

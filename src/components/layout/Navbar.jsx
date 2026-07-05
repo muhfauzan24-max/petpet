@@ -222,6 +222,9 @@ export default function Navbar() {
                   <Link to={getDashboardLink()} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.6rem 1rem', borderRadius: 'var(--radius-md)', color: 'var(--primary)', fontSize: '0.875rem', fontWeight: 700 }}>
                     <User size={15} /> {getDashboardLabel()}
                   </Link>
+                  <Link to="/profile" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.6rem 1rem', borderRadius: 'var(--radius-md)', color: 'var(--text-secondary)', fontSize: '0.875rem', fontWeight: 500 }}>
+                    <User size={15} /> Edit Profil
+                  </Link>
                   {user.peran === 'pembeli' && (
                     <>
                       <Link to="/akun/daftar-kios" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.6rem 1rem', borderRadius: 'var(--radius-md)', color: 'var(--text-secondary)', fontSize: '0.875rem', fontWeight: 500 }}>
