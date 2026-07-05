@@ -92,21 +92,6 @@ export default function Login() {
           </p>
         </div>
 
-        {/* Admin quick login */}
-        <div style={{ marginTop: '1.25rem', padding: '1rem', background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.15)', borderRadius: 'var(--radius-lg)' }}>
-          <p style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--secondary)', marginBottom: '0.75rem' }}>⚡ Login Admin (untuk testing):</p>
-          <button
-            type="button"
-            onClick={() => quickLogin('admin@petplace.id', 'admin123')}
-            disabled={loading}
-            style={{ width: '100%', padding: '0.5rem', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', transition: 'var(--transition)' }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--secondary)'; e.currentTarget.style.color = 'var(--secondary)'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
-          >🛡️ Login sebagai Admin</button>
-          <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.5rem', textAlign: 'center' }}>
-            admin@petplace.id / admin123
-          </p>
-        </div>
       </div>
     </div>
   );
