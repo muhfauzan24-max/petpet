@@ -194,6 +194,31 @@ export const adminAPI = {
 };
 
 // ============================================================
+// HEWAN PELIHARAAN
+// ============================================================
+export const hewanAPI = {
+  list: () => api.get('hewan.php?action=list'),
+  add: (data) => api.post('hewan.php?action=add', data),
+  delete: (id) => api.delete(`hewan.php?action=delete&id=${id}`),
+};
+
+// ============================================================
+// CHAT
+// ============================================================
+export const chatAPI = {
+  list: () => api.get('chat.php?action=list'),
+  messages: (params = {}) => api.get('chat.php?action=messages', params),
+  send: (data) => api.post('chat.php?action=send', data),
+};
+
+// ============================================================
+// AKUN (DASHBOARD STATS)
+// ============================================================
+export const akunAPI = {
+  stats: () => api.get('dashboard.php?action=stats'),
+};
+
+// ============================================================
 // LOKASI
 // ============================================================
 export const lokasiAPI = {

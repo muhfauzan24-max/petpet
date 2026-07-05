@@ -1,15 +1,36 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import DashboardSidebar from '../../components/layout/DashboardSidebar';
-import { Plus, Trash2, Edit } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { hewanAPI } from '../../services/api';
 
-const defaultForm = { nama: '', jenis: 'kucing', ras: '', kelamin: 'Jantan', lahir: '', berat: '', catatan: '' };
+const defaultForm = { nama: '', jenis: 'kucing', ras: '', kelamin: 'Jantan', lahir: '', berat: '', catatan: '', foto: '' };
 
 export default function AkunHewan() {
   const { user } = useAuth();
-  const [hewanList, setHewanList] = useState(JSON.parse(localStorage.getItem('petplace_hewan') || '[]'));
+  const [hewanList, setHewanList] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(defaultForm);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const data = await hewanAPI.list();
+      setHewanList(data || []);
+    } catch (err) {
+      console.error(err);
+      setError('Gagal memuat data hewan peliharaan');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const getSidebarLinks = () => {
     const list = [
@@ -30,19 +51,42 @@ export default function AkunHewan() {
     return list;
   };
 
-  const save = () => {
-    if (!form.nama || !form.jenis) return;
-    const newList = [...hewanList, { id: Date.now(), ...form }];
-    setHewanList(newList);
-    localStorage.setItem('petplace_hewan', JSON.stringify(newList));
-    setShowForm(false);
-    setForm(defaultForm);
+  const handlePhotoUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setForm(p => ({ ...p, foto: reader.result }));
+    };
+    reader.readAsDataURL(file);
   };
 
-  const hapus = (id) => {
-    const newList = hewanList.filter(h => h.id !== id);
-    setHewanList(newList);
-    localStorage.setItem('petplace_hewan', JSON.stringify(newList));
+  const save = async () => {
+    if (!form.nama || !form.jenis) return;
+    setError('');
+    setSuccess('');
+    try {
+      await hewanAPI.add(form);
+      setSuccess('Hewan peliharaan berhasil ditambahkan!');
+      setForm(defaultForm);
+      setShowForm(false);
+      await loadData();
+    } catch (err) {
+      setError(err.message || 'Gagal menyimpan hewan peliharaan');
+    }
+  };
+
+  const hapus = async (id) => {
+    if (!window.confirm('Hapus data hewan peliharaan ini?')) return;
+    setError('');
+    setSuccess('');
+    try {
+      await hewanAPI.delete(id);
+      setSuccess('Data hewan berhasil dihapus.');
+      await loadData();
+    } catch (err) {
+      setError(err.message || 'Gagal menghapus data hewan');
+    }
   };
 
   return (
@@ -55,6 +99,9 @@ export default function AkunHewan() {
             <Plus size={15} /> Tambah Hewan
           </button>
         </div>
+
+        {error && <div className="alert alert-error" style={{ marginBottom: '1rem' }}>{error}</div>}
+        {success && <div className="alert alert-success" style={{ marginBottom: '1rem' }}>{success}</div>}
 
         {showForm && (
           <div className="card" style={{ padding: '1.5rem', marginBottom: '1.5rem', animation: 'fadeIn 0.3s ease' }}>
@@ -85,6 +132,10 @@ export default function AkunHewan() {
                   <option value="Betina">♀️ Betina</option>
                 </select>
               </div>
+              <div className="form-group">
+                <label className="form-label">Foto Hewan</label>
+                <input type="file" accept="image/*" className="form-input" onChange={handlePhotoUpload} />
+              </div>
               <div className="form-group" style={{ gridColumn: '1/-1' }}>
                 <label className="form-label">Catatan Kesehatan</label>
                 <textarea value={form.catatan} onChange={e => setForm(p => ({ ...p, catatan: e.target.value }))} className="form-input" placeholder="Alergi, kondisi khusus, dll..." rows={2} />
@@ -97,7 +148,9 @@ export default function AkunHewan() {
           </div>
         )}
 
-        {hewanList.length === 0 && !showForm ? (
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '4rem' }}>Memuat data hewan...</div>
+        ) : hewanList.length === 0 && !showForm ? (
           <div className="card" style={{ padding: '4rem', textAlign: 'center' }}>
             <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🐾</div>
             <h3>Belum ada data hewan</h3>
@@ -108,7 +161,13 @@ export default function AkunHewan() {
           <div className="grid-3">
             {hewanList.map(h => (
               <div key={h.id} className="card" style={{ padding: '1.5rem', textAlign: 'center' }}>
-                <div style={{ fontSize: '3.5rem', marginBottom: '0.75rem' }}>{h.jenis === 'kucing' ? '🐱' : '🐶'}</div>
+                <div style={{ fontSize: '3.5rem', marginBottom: '0.75rem' }}>
+                  {h.foto ? (
+                    <img src={h.foto.startsWith('http') || h.foto.startsWith('/uploads') ? (h.foto.startsWith('http') ? h.foto : `${window.location.origin}${h.foto}`) : `https://api.dicebear.com/7.x/avataaars/svg?seed=${h.nama}`} alt={h.nama} style={{ width: 80, height: 80, borderRadius: '50%', objectFit: 'cover', margin: '0 auto' }} />
+                  ) : (
+                    h.jenis === 'kucing' ? '🐱' : '🐶'
+                  )}
+                </div>
                 <h3 style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>{h.nama}</h3>
                 <span className={`tag tag-${h.jenis}`} style={{ marginBottom: '0.75rem', display: 'inline-block' }}>{h.jenis === 'kucing' ? '🐱 Kucing' : '🐶 Anjing'}</span>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.8 }}>
