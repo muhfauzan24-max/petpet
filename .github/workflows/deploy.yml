@@ -18,13 +18,29 @@ jobs:
           script: |
             cd ${{ secrets.VPS_PROJECT_PATH }}
             git pull origin main
-            echo "=== Services running ==="
-            docker compose ps
-            echo "=== Building ==="
             docker compose build --no-cache
             docker compose up -d
-            sleep 5
-            echo "=== Copying PHP files directly into container ==="
-            for svc in backend app php web server petpet; do
-              docker compose cp api/. ${svc}:/var/www/html/api/ 2>/dev/null && echo "✅ Copied to ${svc}" && break || echo "❌ ${svc} not found"
-            done
+            sleep 10
+            echo "=== All running containers ==="
+            docker ps --format "{{.Names}}"
+            echo "=== Setup admin via docker exec ==="
+            PHP_CONTAINER=$(docker ps --format "{{.Names}}" | grep -iE "php|back|app|petpet" | head -1)
+            if [ -z "$PHP_CONTAINER" ]; then
+              PHP_CONTAINER=$(docker ps --format "{{.Names}}" | head -1)
+            fi
+            echo "Using container: $PHP_CONTAINER"
+            docker exec "$PHP_CONTAINER" php -r "
+              \$host = getenv('DB_HOST') ?: 'db';
+              \$user = getenv('DB_USER') ?: 'petplace_user';
+              \$pass = getenv('DB_PASS') ?: '';
+              \$name = getenv('DB_NAME') ?: 'petplace';
+              try {
+                \$pdo = new PDO('mysql:host='.\$host.';dbname='.\$name.';charset=utf8mb4', \$user, \$pass);
+                \$hash = password_hash('admin123', PASSWORD_BCRYPT);
+                \$sql = 'INSERT INTO pengguna (nama_lengkap,email,password,peran,status) VALUES (\"Admin\",\"admin@petplace.id\",?,\"admin\",\"aktif\") ON DUPLICATE KEY UPDATE password=?,status=\"aktif\"';
+                \$s = \$pdo->prepare(\$sql);
+                \$s->execute([\$hash,\$hash]);
+                echo 'Admin OK: '.\$s->rowCount().' rows'.PHP_EOL;
+              } catch(Exception \$e) { echo 'Error: '.\$e->getMessage().PHP_EOL; }
+            " 2>&1 || echo "docker exec failed"
+
