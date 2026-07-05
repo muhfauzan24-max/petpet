@@ -114,6 +114,7 @@ export const produkAPI = {
   update: (id, data) => api.put(`produk.php?id=${id}`, data),
   delete: (id) => api.delete(`produk.php?id=${id}`),
   kategori: () => api.get('produk.php?action=kategori'),
+  review: (data) => api.post('produk.php?action=review', data),
 };
 
 // ============================================================

@@ -5,6 +5,7 @@ import { formatRupiah, kategoriProduk } from '../data/mockData';
 import { produkAPI as pApi, dokterAPI as dApi, groomingAPI as gApi, adminAPI, getImageUrl } from '../services/api';
 import RatingStars from '../components/ui/RatingStars';
 import MiniMap from '../components/ui/MiniMap';
+import ProductDetailModal from '../components/ui/ProductDetailModal';
 
 export default function Home() {
   const [featuredProduk, setFeaturedProduk]   = useState([]);
@@ -15,6 +16,7 @@ export default function Home() {
   const [loadingProduk, setLoadingProduk]     = useState(true);
   const [loadingDokter, setLoadingDokter]     = useState(true);
   const [loadingGrooming, setLoadingGrooming] = useState(true);
+  const [selectedProdukId, setSelectedProdukId] = useState(null);
 
   useEffect(() => {
     // Fetch featured products
@@ -239,11 +241,17 @@ export default function Home() {
             </div>
           ) : (
             <div className="grid-auto">
-              {featuredProduk.map(produk => <ProdukCard key={produk.id} produk={produk} />)}
+              {featuredProduk.map(produk => (
+                <ProdukCard key={produk.id} produk={produk} onClick={() => setSelectedProdukId(produk.id)} />
+              ))}
             </div>
           )}
         </div>
       </section>
+
+      {selectedProdukId && (
+        <ProductDetailModal produkId={selectedProdukId} onClose={() => setSelectedProdukId(null)} />
+      )}
 
       {/* TOP DOKTER */}
       <section className="section">
@@ -337,11 +345,11 @@ export default function Home() {
 
 // ---- Sub-components ----
 
-function ProdukCard({ produk }) {
+function ProdukCard({ produk, onClick }) {
   return (
-    <Link to={`/produk/detail/${produk.id}`} style={{ textDecoration: 'none' }}>
-      <div className="card" style={{ overflow: 'hidden' }}>
-        <div style={{ position: 'relative', paddingBottom: '65%', overflow: 'hidden', background: 'var(--bg-secondary)' }}>
+    <div onClick={onClick} style={{ textDecoration: 'none', cursor: 'pointer', height: '100%' }}>
+      <div className="card" style={{ overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ position: 'relative', paddingBottom: '65%', overflow: 'hidden', background: 'var(--bg-secondary)', flexShrink: 0 }}>
           <img
             src={getImageUrl(produk.foto) || 'https://placehold.co/400x260/1C1C1C/666?text=No+Foto'}
             alt={produk.nama}
@@ -361,9 +369,9 @@ function ProdukCard({ produk }) {
             <span className={`tag tag-${produk.jenisHewan}`}>{produk.jenisHewan === 'kucing' ? '🐱' : '🐶'}</span>
           </div>
         </div>
-        <div style={{ padding: '1rem' }}>
+        <div style={{ padding: '1rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
           <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>{produk.namaKios}</p>
-          <h4 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.5rem', lineHeight: 1.3 }}>{produk.nama}</h4>
+          <h4 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.5rem', lineHeight: 1.3, flex: 1 }}>{produk.nama}</h4>
           <RatingStars rating={parseFloat(produk.rating) || 0} size={12} totalUlasan={produk.totalUlasan} />
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.75rem' }}>
             <div>
@@ -380,7 +388,7 @@ function ProdukCard({ produk }) {
           </div>
         </div>
       </div>
-    </Link>
+    </div>
   );
 }
 

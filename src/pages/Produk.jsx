@@ -5,6 +5,7 @@ import { kategoriProduk, formatRupiah } from '../data/mockData';
 import { produkAPI, getImageUrl } from '../services/api';
 import { useCart } from '../context/CartContext';
 import RatingStars from '../components/ui/RatingStars';
+import ProductDetailModal from '../components/ui/ProductDetailModal';
 
 export default function Produk() {
   const { kategori } = useParams();
@@ -18,6 +19,7 @@ export default function Produk() {
   const [addedId, setAddedId]     = useState(null);
   const [loading, setLoading]     = useState(true);
   const [total, setTotal]         = useState(0);
+  const [selectedProdukId, setSelectedProdukId] = useState(null);
 
   const loadData = async () => {
     setLoading(true);
@@ -71,6 +73,7 @@ export default function Produk() {
 
   const handleAdd = (e, produk) => {
     e.preventDefault();
+    e.stopPropagation();
     tambah(produk);
     setAddedId(produk.id);
     setTimeout(() => setAddedId(null), 1500);
@@ -175,7 +178,7 @@ export default function Produk() {
         ) : (
           <div className="grid-auto" style={{ marginBottom: '2rem' }}>
             {allProduk.map(produk => (
-              <Link key={produk.id} to={`/produk/detail/${produk.id}`} style={{ textDecoration: 'none' }}>
+              <div key={produk.id} onClick={() => setSelectedProdukId(produk.id)} style={{ textDecoration: 'none', cursor: 'pointer' }}>
                 <div className="card" style={{ overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column' }}>
                   <div style={{ position: 'relative', paddingBottom: '65%', overflow: 'hidden', background: 'var(--bg-secondary)', flexShrink: 0 }}>
                     <img src={getImageUrl(produk.foto) || 'https://placehold.co/300x200/1C1C1C/666?text=No+Foto'} alt={produk.nama}
@@ -221,11 +224,15 @@ export default function Produk() {
                     </div>
                   </div>
                 </div>
-              </Link>
+              </div>
             ))}
           </div>
         )}
       </div>
+
+      {selectedProdukId && (
+        <ProductDetailModal produkId={selectedProdukId} onClose={() => setSelectedProdukId(null)} />
+      )}
     </div>
   );
 }

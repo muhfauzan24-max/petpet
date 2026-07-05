@@ -293,11 +293,26 @@ function kiosStats(int $idKios): void {
     ");
     $sStmt->execute([$idKios]);
     $totalPenjualan = (float)$sStmt->fetchColumn();
+
+    // 10 ulasan produk terbaru
+    $rStmt = $db->prepare("
+        SELECT u.id_ulasan AS id, p.nama_produk AS namaProduk, p.id_produk AS idProduk,
+               p2.nama_lengkap AS namaUser, u.bintang, u.komentar, u.created_at AS tanggal
+        FROM ulasan_produk u
+        JOIN produk p ON u.id_produk = p.id_produk
+        JOIN pengguna p2 ON u.id_pengguna = p2.id_pengguna
+        WHERE p.id_kios = ? AND u.status = 'aktif'
+        ORDER BY u.created_at DESC
+        LIMIT 10
+    ");
+    $rStmt->execute([$idKios]);
+    $ulasanList = $rStmt->fetchAll();
     
     sendSuccess([
         'totalProduk'       => $totalProduk,
         'totalPesanan'      => $totalPesanan,
         'pesananVerifikasi' => $pesananVerifikasi,
-        'totalPenjualan'    => $totalPenjualan
+        'totalPenjualan'    => $totalPenjualan,
+        'ulasan'            => $ulasanList
     ]);
 }

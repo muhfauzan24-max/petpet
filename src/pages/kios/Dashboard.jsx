@@ -679,6 +679,43 @@ export default function KiosDashboard() {
               )}
             </div>
 
+            {/* ══════════════ ULASAN PRODUK TERBARU ══════════════ */}
+            <div className="card" style={{ padding:"1.5rem", marginBottom:"2rem" }}>
+              <h3 style={{ display:"flex", alignItems:"center", gap:"0.6rem", marginBottom:"1.25rem" }}>
+                <span>💬</span> Ulasan Produk Terbaru
+              </h3>
+
+              {!stats?.ulasan || stats.ulasan.length === 0 ? (
+                <div style={{ textAlign:"center", padding:"2rem", color:"var(--text-muted)", fontSize:"0.875rem" }}>
+                  Belum ada ulasan untuk produk Anda
+                </div>
+              ) : (
+                <div style={{ display:"flex", flexDirection:"column", gap:"0.875rem" }}>
+                  {stats.ulasan.map(u => (
+                    <div key={u.id} style={{
+                      padding:"1rem 1.25rem",
+                      background:"var(--bg-secondary)",
+                      border:"1px solid var(--border)",
+                      borderRadius:"var(--radius-lg)",
+                      display:"flex", flexDirection:"column", gap:"0.4rem"
+                    }}>
+                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:"0.5rem" }}>
+                        <div style={{ display:"flex", alignItems:"center", gap:"0.5rem" }}>
+                          <span style={{ fontWeight:700, fontSize:"0.88rem", color:"var(--text-primary)" }}>{u.namaUser}</span>
+                          <span style={{ color:"#F59E0B", fontSize:"0.85rem" }}>{'★'.repeat(u.bintang)}{'☆'.repeat(5 - u.bintang)}</span>
+                        </div>
+                        <span style={{ fontSize:"0.72rem", color:"var(--text-muted)" }}>{new Date(u.tanggal).toLocaleDateString('id-ID', { day:'numeric', month:'short', year:'numeric' })}</span>
+                      </div>
+                      <div style={{ fontSize:"0.82rem", color:"var(--text-muted)" }}>
+                        Produk: <strong style={{ color:"var(--primary)" }}>{u.namaProduk}</strong>
+                      </div>
+                      <p style={{ fontSize:"0.85rem", color:"var(--text-secondary)", margin:0 }}>"{u.komentar}"</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* Quick Nav */}
             <div className="grid-2">
               {[

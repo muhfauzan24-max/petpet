@@ -28,6 +28,8 @@ if ($method === 'GET' && !$id && !$action) {
     approveRejectProduk($id, 'aktif');
 } elseif ($method === 'POST' && $action === 'reject' && $id) {
     approveRejectProduk($id, 'nonaktif');
+} elseif ($method === 'POST' && $action === 'review') {
+    createReview();
 } else {
     sendError('Endpoint tidak ditemukan', 404);
 }
@@ -364,4 +366,44 @@ function slugify(string $text): string {
     $text = preg_replace('/[^a-z0-9\s-]/', '', $text);
     $text = preg_replace('/\s+/', '-', trim($text));
     return $text;
+}
+
+function createReview(): void {
+    $user = requireAuth();
+    $data = getRequestBody();
+    $db   = getDB();
+
+    $idProduk = (int)($data['id_produk'] ?? 0);
+    $bintang  = (int)($data['bintang'] ?? 5);
+    $komentar = trim($data['komentar'] ?? '');
+
+    if (!$idProduk) sendError('ID produk wajib diisi');
+    if ($bintang < 1 || $bintang > 5) sendError('Rating bintang harus bernilai 1 sampai 5');
+    if (empty($komentar)) sendError('Komentar ulasan wajib diisi');
+
+    // Cek apakah produk ada
+    $chk = $db->prepare("SELECT id_produk FROM produk WHERE id_produk = ?");
+    $chk->execute([$idProduk]);
+    if (!$chk->fetch()) sendError('Produk tidak ditemukan', 404);
+
+    // Simpan ke ulasan_produk
+    $db->prepare("
+        INSERT INTO ulasan_produk (id_produk, id_pengguna, bintang, komentar, status)
+        VALUES (?, ?, ?, ?, 'aktif')
+    ")->execute([$idProduk, $user['id_pengguna'], $bintang, $komentar]);
+
+    // Update rata-rata rating & total ulasan produk
+    $db->prepare("
+        UPDATE produk p SET
+          rating_avg = (SELECT COALESCE(AVG(bintang), 0) FROM ulasan_produk WHERE id_produk = p.id_produk AND status = 'aktif'),
+          total_ulasan = (SELECT COUNT(*) FROM ulasan_produk WHERE id_produk = p.id_produk AND status = 'aktif')
+        WHERE p.id_produk = ?
+    ")->execute([$idProduk]);
+
+    // Fetch updated rating info
+    $infoStmt = $db->prepare("SELECT rating_avg AS rating, total_ulasan AS totalUlasan FROM produk WHERE id_produk = ?");
+    $infoStmt->execute([$idProduk]);
+    $info = $infoStmt->fetch();
+
+    sendSuccess($info, 'Ulasan berhasil ditambahkan');
 }
