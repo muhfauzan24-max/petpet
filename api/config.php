@@ -2,12 +2,11 @@
 // ============================================================
 // PetPlace API — Konfigurasi Database
 // ============================================================
-
 define('DB_HOST', getenv('DB_HOST') ?: 'localhost');
 define('DB_USER', getenv('DB_USER') ?: 'root');
 define('DB_PASS', getenv('DB_PASS') ?: '');
 define('DB_NAME', getenv('DB_NAME') ?: 'petplace');
-define('DB_PORT', (int)(getenv('DB_PORT') ?: 3306));
+define('DB_PORT', getenv('DB_PORT') ?: 3306);
 
 function getDB(): PDO {
     static $pdo = null;
@@ -26,13 +25,10 @@ function getDB(): PDO {
     }
     return $pdo;
 }
-
 function setCORSHeaders(): void {
-    // Remove any pre-existing CORS headers (e.g., set by Apache .htaccess)
     header_remove('Access-Control-Allow-Origin');
     header_remove('Access-Control-Allow-Methods');
     header_remove('Access-Control-Allow-Headers');
-
     $origin = $_SERVER['HTTP_ORIGIN'] ?? '*';
     header('Access-Control-Allow-Origin: ' . $origin);
     header('Access-Control-Allow-Credentials: true');
@@ -44,34 +40,27 @@ function setCORSHeaders(): void {
         exit();
     }
 }
-
 function sendJSON(mixed $data, int $code = 200): void {
     http_response_code($code);
     echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     exit();
 }
-
 function sendError(string $message, int $code = 400): void {
     sendJSON(['error' => $message, 'success' => false], $code);
 }
-
 function sendSuccess(mixed $data = null, string $message = 'OK'): void {
     sendJSON(['success' => true, 'message' => $message, 'data' => $data]);
 }
-
 function getRequestBody(): array {
     $raw = file_get_contents('php://input');
     $data = json_decode($raw, true) ?? [];
     return array_merge($_POST, $data);
 }
-
 function getAuthUser(): ?array {
     $headers = getallheaders();
     $token = $headers['Authorization'] ?? '';
     $token = str_replace('Bearer ', '', $token);
-    
     if (empty($token)) return null;
-    
     $db = getDB();
     $stmt = $db->prepare("
         SELECT p.id_pengguna, p.nama_lengkap, p.email, p.peran, p.status, p.foto_profil
@@ -84,7 +73,6 @@ function getAuthUser(): ?array {
     $user = $stmt->fetch();
     return $user ?: null;
 }
-
 function requireAuth(): array {
     $user = getAuthUser();
     if (!$user) {
@@ -92,7 +80,6 @@ function requireAuth(): array {
     }
     return $user;
 }
-
 function requireAdmin(): array {
     $user = requireAuth();
     if ($user['peran'] !== 'admin') {

@@ -186,7 +186,7 @@ function createProduk(): void {
             $fname   = 'produk_' . time() . '_' . uniqid() . '.' . $extStr;
             file_put_contents($dir . $fname, $imgData);
             // URL yang bisa diakses browser
-            $foto = '/apps/apps/pawboutique/uploads/produk/' . $fname;
+            $foto = '/uploads/produk/' . $fname;
         } else {
             // URL langsung
             $foto = $fotoData;
