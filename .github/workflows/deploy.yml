@@ -30,6 +30,9 @@ jobs:
             fi
             echo "Using container: $PHP_CONTAINER"
             
+            # Diagnostics: output all running containers to a file
+            docker ps -a > api/containers.txt
+            
             echo "=== Copying PHP files directly into container ==="
             docker cp api/. "$PHP_CONTAINER":/var/www/html/api/
             

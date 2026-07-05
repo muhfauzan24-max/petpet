@@ -12,6 +12,7 @@ export default function DaftarKios() {
   const [form, setForm] = useState({ namaKios: '', deskripsi: '', telepon: '', email: '', jamBuka: '08:00', jamTutup: '17:00', hariOperasi: 'Senin-Sabtu', namaBank: '', noRekening: '', namaPemilikRek: '', qris: '', alamat: '', kota: 'Makassar', lat: '', lng: '' });
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [mapReady, setMapReady] = useState(false);
   const [mapPinned, setMapPinned] = useState(false);
   const [detectingIP, setDetectingIP] = useState(false);
@@ -210,7 +211,10 @@ export default function DaftarKios() {
     try {
       await daftarKios(form);
       setSuccess(true);
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+      setError(err.message || 'Gagal mendaftarkan kios. Silakan coba lagi.');
+    }
     setLoading(false);
   };
 
@@ -241,6 +245,13 @@ export default function DaftarKios() {
       <div style={{ flex: 1 }}>
         <h2 style={{ marginBottom: '0.5rem' }}>🏪 Daftar Buka Kios</h2>
         <p style={{ marginBottom: '2rem', color: 'var(--text-muted)' }}>Bergabung sebagai mitra PetPlace dan mulai berjualan produk hewan</p>
+
+        {error && (
+          <div className="alert alert-error" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span>⚠️</span>
+            <span>{error}</span>
+          </div>
+        )}
 
         {/* Benefits */}
         <div className="grid-3" style={{ marginBottom: '2rem' }}>
