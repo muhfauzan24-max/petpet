@@ -91,7 +91,35 @@ export default function KiosProduk() {
     }
     const reader = new FileReader();
     reader.onload = (e) => {
-      setForm(f => ({ ...f, fotoFile: file, fotoPreview: e.target.result }));
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const MAX_WIDTH = 800;
+        const MAX_HEIGHT = 800;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const compressedBase64 = canvas.toDataURL("image/jpeg", 0.7);
+        setForm(f => ({ ...f, fotoFile: file, fotoPreview: compressedBase64 }));
+      };
+      img.src = e.target.result;
     };
     reader.readAsDataURL(file);
   };
@@ -228,10 +256,16 @@ export default function KiosProduk() {
 
         {/* Toast */}
         {toast && (
-          <div className={`alert alert-${toast.type === "success" ? "success" : "error"}`}
-            style={{ marginBottom:"1rem", display:"flex", justifyContent:"space-between", alignItems:"center", animation:"fadeIn 0.3s ease" }}>
-            {toast.msg}
-            <button onClick={() => setToast(null)} style={{ background:"none", border:"none", cursor:"pointer", color:"inherit", fontSize:"1.1rem" }}>×</button>
+          <div style={{
+            position: "fixed", top: 90, right: 24, zIndex: 9999,
+            background: toast.type === "success" ? "rgba(16,185,129,0.95)" : "rgba(239,68,68,0.95)",
+            color: "#fff", borderRadius: "var(--radius-lg)", padding: "0.9rem 1.5rem",
+            fontWeight: 600, fontSize: "0.9rem", boxShadow: "var(--shadow-lg)",
+            display: "flex", alignItems: "center", gap: "0.5rem",
+            animation: "slideIn 0.3s ease",
+          }}>
+            {toast.type === "success" ? "✅" : "❌"} {toast.msg}
+            <button onClick={() => setToast(null)} style={{ background:"none", border:"none", cursor:"pointer", color:"inherit", fontSize:"1.1rem", marginLeft: "0.5rem" }}>×</button>
           </div>
         )}
 
