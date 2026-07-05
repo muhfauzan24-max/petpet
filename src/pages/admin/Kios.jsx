@@ -443,7 +443,7 @@ export default function AdminKios() {
       {/* MODAL: DETAIL KIOS */}
       {/* ============================================================ */}
       {selectedKios && (
-        <div className="overlay" style={{ animation: "fadeIn 0.25s ease forwards" }}>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem", zIndex: 1000, animation: "fadeIn 0.25s ease forwards" }}>
           <div className="card-glass" style={{ width: "100%", maxWidth: showProdukPanel ? 760 : 600, padding: "2rem", maxHeight: "90vh", overflowY: "auto", position: "relative" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
               <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
@@ -514,7 +514,7 @@ export default function AdminKios() {
       {/* MODAL: DETAIL DOKTER */}
       {/* ============================================================ */}
       {selectedDokter && (
-        <div className="overlay" style={{ animation: "fadeIn 0.25s ease forwards" }}>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem", zIndex: 1000, animation: "fadeIn 0.25s ease forwards" }}>
           <div className="card-glass" style={{ width: "100%", maxWidth: 500, padding: "2rem", maxHeight: "90vh", overflowY: "auto", position: "relative" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
               <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
@@ -559,7 +559,7 @@ export default function AdminKios() {
       {/* MODAL: DETAIL GROOMING */}
       {/* ============================================================ */}
       {selectedGrooming && (
-        <div className="overlay" style={{ animation: "fadeIn 0.25s ease forwards" }}>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem", zIndex: 1000, animation: "fadeIn 0.25s ease forwards" }}>
           <div className="card-glass" style={{ width: "100%", maxWidth: 500, padding: "2rem", maxHeight: "90vh", overflowY: "auto", position: "relative" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
               <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
