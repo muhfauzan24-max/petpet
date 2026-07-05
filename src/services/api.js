@@ -10,8 +10,8 @@ const getApiBase = () => {
   if (port === '5173' || port === '3000') {
     return `${protocol}//${hostname}/apps/apps/pawboutique/api`;
   }
-  // Production: relative path
-  return '/api';
+  // Production: absolute URL
+  return `${protocol}//${hostname}/api`;
 };
 
 // Detect Laragon base for images
