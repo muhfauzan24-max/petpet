@@ -64,7 +64,7 @@ export default function AkunDashboard() {
   ];
 
   return (
-    <div style={{ display: 'flex', gap: '2rem', padding: '2rem 1.5rem', maxWidth: 1200, margin: '0 auto' }}>
+    <div className="dashboard-layout" style={{ display: 'flex', gap: '2rem', padding: '2rem 1.5rem', maxWidth: 1200, margin: '0 auto' }}>
       <DashboardSidebar links={getSidebarLinks()} title="Akun Saya" />
 
       <div style={{ flex: 1, minWidth: 0 }}>

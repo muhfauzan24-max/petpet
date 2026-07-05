@@ -31,7 +31,7 @@ export default function AdminKomisi() {
   useEffect(() => { loadData(); }, []);
 
   return (
-    <div style={{ display:"flex", gap:"2rem", padding:"2rem 1.5rem", maxWidth:1200, margin:"0 auto" }}>
+    <div className="dashboard-layout" style={{ display:"flex", gap:"2rem", padding:"2rem 1.5rem", maxWidth:1200, margin:"0 auto" }}>
       <DashboardSidebar links={links} title="Admin Panel" color="var(--secondary)" />
       <div style={{ flex:1 }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"1.5rem" }}>

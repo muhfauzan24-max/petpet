@@ -275,7 +275,7 @@ export default function Navbar() {
               )}
             </div>
           ) : (
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <div className="desktop-nav" style={{ display: 'flex', gap: '0.5rem' }}>
               <Link to="/masuk" className="btn btn-secondary btn-sm">Masuk</Link>
               <Link to="/daftar" className="btn btn-primary btn-sm">Daftar</Link>
             </div>

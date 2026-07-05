@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 export default function DashboardSidebar({ links, title, color = 'var(--primary)' }) {
   const { pathname } = useLocation();
   return (
-    <div style={{
+    <div className="dashboard-sidebar" style={{
       width: 250,
       background: 'var(--bg-secondary)',
       border: '1px solid var(--border)',
@@ -14,6 +14,20 @@ export default function DashboardSidebar({ links, title, color = 'var(--primary)
       flexShrink: 0,
       height: 'fit-content',
     }}>
+      <style>{`
+        @media (max-width: 768px) {
+          .dashboard-sidebar {
+            width: 100% !important;
+            position: static !important;
+            margin-bottom: 1rem;
+          }
+          .dashboard-layout {
+            flex-direction: column !important;
+            gap: 1rem !important;
+            padding: 1rem !important;
+          }
+        }
+      `}</style>
       <div style={{ marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1px solid var(--border)' }}>
         <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Panel</p>
         <h3 style={{ fontSize: '1rem', fontWeight: 800, color }}>{title}</h3>
