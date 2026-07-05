@@ -65,6 +65,16 @@ export default function AdminDashboard() {
     loadProdukKios();
   }, []);
 
+  // Auto-refresh pending data setiap 15 detik (real-time notifikasi kemitraan baru)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      adminAPI.pending().then(pendingData => {
+        setPending(pendingData || { pendingKios:[], pendingDokter:[], pendingGrooming:[], pendingBayar:[] });
+      }).catch(() => {});
+    }, 15000);
+    return () => clearInterval(interval);
+  }, []);
+
   const handleApproveKios = async (id) => {
     try {
       await kiosAPI.approve(id);

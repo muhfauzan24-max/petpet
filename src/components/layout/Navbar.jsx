@@ -220,13 +220,8 @@ export default function Navbar() {
                     <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{user.peran}</p>
                   </div>
                   <Link to={getDashboardLink()} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.6rem 1rem', borderRadius: 'var(--radius-md)', color: 'var(--primary)', fontSize: '0.875rem', fontWeight: 700 }}>
-                    <Store size={15} /> {getDashboardLabel()}
+                    <User size={15} /> {getDashboardLabel()}
                   </Link>
-                  {user.peran !== 'pembeli' && user.peran !== 'admin' && (
-                    <Link to="/akun" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.6rem 1rem', borderRadius: 'var(--radius-md)', color: 'var(--text-secondary)', fontSize: '0.875rem', fontWeight: 500 }}>
-                      <User size={15} /> Akun Saya
-                    </Link>
-                  )}
                   {user.peran === 'pembeli' && (
                     <>
                       <Link to="/akun/daftar-kios" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.6rem 1rem', borderRadius: 'var(--radius-md)', color: 'var(--text-secondary)', fontSize: '0.875rem', fontWeight: 500 }}>
@@ -244,14 +239,14 @@ export default function Navbar() {
                       )}
                     </>
                   )}
-                  {(user.peran === 'owner' || user.peran === 'dokter' || user.peran === 'grooming') && (
+                  {user.peran === 'owner' && (
                     <>
-                      {(!user.hasDokter && !user.dokterStatus && user.peran !== 'dokter') && (
+                      {(!user.hasDokter && !user.dokterStatus) && (
                         <Link to="/akun/daftar-dokter" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.6rem 1rem', borderRadius: 'var(--radius-md)', color: 'var(--text-secondary)', fontSize: '0.875rem', fontWeight: 500 }}>
                           <Stethoscope size={15} /> Daftar Dokter
                         </Link>
                       )}
-                      {(!user.hasGrooming && !user.groomingStatus && user.peran !== 'grooming') && (
+                      {(!user.hasGrooming && !user.groomingStatus) && (
                         <Link to="/akun/daftar-grooming" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.6rem 1rem', borderRadius: 'var(--radius-md)', color: 'var(--text-secondary)', fontSize: '0.875rem', fontWeight: 500 }}>
                           <Scissors size={15} /> Daftar Grooming
                         </Link>

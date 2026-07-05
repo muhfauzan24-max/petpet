@@ -165,41 +165,17 @@ export default function DaftarKios() {
       { href: '/akun/chat', icon: '💬', label: 'Chat' },
       { href: '/akun/hewan', icon: '🐾', label: 'Hewan Saya' },
     ];
-    if (user?.peran === 'owner' || user?.kios) {
-      list.push({ href: '/kios', icon: '🏪', label: 'Dashboard Kios' });
-    } else {
+    if (user?.peran !== 'owner') {
       list.push({ href: '/akun/daftar-kios', icon: '🏪', label: 'Buka Kios' });
     }
-    if (user?.peran === 'dokter' || user?.hasDokter || user?.dokter) {
-      list.push({ href: '/portal-dokter', icon: '🏥', label: 'Dashboard Dokter' });
-    } else {
+    if (user?.peran !== 'dokter' && !user?.hasDokter) {
       list.push({ href: '/akun/daftar-dokter', icon: '🏥', label: user?.dokterStatus === 'pending' ? 'Dokter (Pending)' : 'Daftar Dokter' });
     }
-    if (user?.peran === 'grooming' || user?.hasGrooming || user?.grooming) {
-      list.push({ href: '/portal-grooming', icon: '✂️', label: 'Dashboard Grooming' });
-    } else {
+    if (user?.peran !== 'grooming' && !user?.hasGrooming) {
       list.push({ href: '/akun/daftar-grooming', icon: '✂️', label: user?.groomingStatus === 'pending' ? 'Grooming (Pending)' : 'Daftar Grooming' });
     }
     return list;
   };
-
-  if (user?.peran === 'owner') {
-    return (
-      <div style={{ display: 'flex', gap: '2rem', padding: '2rem 1.5rem', maxWidth: 1200, margin: '0 auto' }}>
-        <DashboardSidebar links={getSidebarLinks()} title="Akun Saya" />
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🏪</div>
-            <h2>Anda sudah memiliki kios!</h2>
-            <p style={{ marginBottom: '1.5rem' }}>Kelola kios Anda di Dashboard Owner</p>
-            <button onClick={() => navigate('/kios')} className="btn btn-primary btn-lg">
-              Ke Dashboard Kios <ArrowRight size={16} />
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -224,6 +200,8 @@ export default function DaftarKios() {
     setLoading(false);
   };
 
+  // ✅ Cek success DULU sebelum cek peran owner
+  // (karena API langsung ubah peran ke 'owner' saat daftar)
   if (success) {
     return (
       <div style={{ display: 'flex', gap: '2rem', padding: '2rem 1.5rem', maxWidth: 1200, margin: '0 auto' }}>
@@ -232,12 +210,63 @@ export default function DaftarKios() {
           <div style={{ textAlign: 'center', animation: 'fadeIn 0.5s ease' }}>
             <div style={{ fontSize: '5rem', marginBottom: '1rem', animation: 'float 2s infinite' }}>🎉</div>
             <h2>Pendaftaran Kios Berhasil!</h2>
-            <p style={{ maxWidth: 400, margin: '0.75rem auto 1.5rem' }}>
-              Kios <strong style={{ color: 'var(--primary)' }}>{form.namaKios}</strong> sedang direview oleh tim PetPlace. 
-              Proses verifikasi 1-2 hari kerja.
+            <p style={{ maxWidth: 450, margin: '0.75rem auto 0.5rem' }}>
+              Kios <strong style={{ color: 'var(--primary)' }}>{form.namaKios}</strong> sudah kami terima dan sedang menunggu verifikasi admin PetPlace.
             </p>
+            <div className="alert alert-info" style={{ textAlign: 'left', maxWidth: 450, margin: '1rem auto' }}>
+              <strong>⏳ Apa yang terjadi selanjutnya?</strong>
+              <ol style={{ marginTop: '0.5rem', paddingLeft: '1.25rem', lineHeight: 1.8 }}>
+                <li>Admin akan memeriksa data kios Anda</li>
+                <li>Proses verifikasi memakan waktu <strong>1-2 hari kerja</strong></li>
+                <li>Setelah disetujui, Anda bisa langsung menambahkan produk</li>
+              </ol>
+            </div>
+            <button onClick={() => navigate('/kios')} className="btn btn-primary btn-lg">
+              Lihat Status Kios <ArrowRight size={16} />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Jika sudah owner & kios aktif (bukan baru daftar)
+  if (user?.peran === 'owner' && user?.kios?.status === 'aktif') {
+    return (
+      <div style={{ display: 'flex', gap: '2rem', padding: '2rem 1.5rem', maxWidth: 1200, margin: '0 auto' }}>
+        <DashboardSidebar links={getSidebarLinks()} title="Akun Saya" />
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🏪</div>
+            <h2>Anda sudah memiliki kios!</h2>
+            <p style={{ marginBottom: '1.5rem' }}>Kelola kios Anda di Dashboard Owner</p>
             <button onClick={() => navigate('/kios')} className="btn btn-primary btn-lg">
               Ke Dashboard Kios <ArrowRight size={16} />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Jika owner tapi kios masih pending (sudah daftar, belum diapprove)
+  if (user?.peran === 'owner' && user?.kios?.status === 'pending') {
+    return (
+      <div style={{ display: 'flex', gap: '2rem', padding: '2rem 1.5rem', maxWidth: 1200, margin: '0 auto' }}>
+        <DashboardSidebar links={getSidebarLinks()} title="Akun Saya" />
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ textAlign: 'center', maxWidth: 520 }}>
+            <div style={{ fontSize: '5rem', marginBottom: '1rem', animation: 'float 2s infinite' }}>⏳</div>
+            <h2>Kios Anda Sedang Diproses</h2>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
+              Pendaftaran kios <strong style={{ color: 'var(--primary)' }}>{user.kios.nama}</strong> sudah kami terima dan saat ini sedang dalam proses verifikasi oleh admin PetPlace.
+            </p>
+            <div className="alert alert-info" style={{ textAlign: 'left', marginBottom: '1.5rem' }}>
+              <strong>📋 Status: Menunggu Persetujuan Admin</strong>
+              <p style={{ marginTop: '0.5rem', fontSize: '0.875rem' }}>Anda akan mendapat akses penuh ke dashboard kios setelah admin menyetujui pendaftaran Anda. Proses biasanya 1-2 hari kerja.</p>
+            </div>
+            <button onClick={() => window.location.reload()} className="btn btn-secondary btn-sm">
+              ↻ Perbarui Status
             </button>
           </div>
         </div>

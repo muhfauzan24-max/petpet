@@ -79,6 +79,16 @@ export default function AdminKios() {
 
   useEffect(() => { loadData(); }, []);
 
+  // Auto-refresh setiap 15 detik untuk cek kios pending baru
+  useEffect(() => {
+    const interval = setInterval(() => {
+      adminAPI.pending().then(pendingData => {
+        setPending(pendingData?.pendingKios || []);
+      }).catch(() => {});
+    }, 15000);
+    return () => clearInterval(interval);
+  }, []);
+
   const approve = async (id) => {
     try {
       await kiosAPI.approve(id);

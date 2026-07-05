@@ -14,19 +14,13 @@ export default function AkunDashboard() {
       { href: '/akun/chat', icon: '💬', label: 'Chat' },
       { href: '/akun/hewan', icon: '🐾', label: 'Hewan Saya' },
     ];
-    if (user?.peran === 'owner' || user?.kios) {
-      list.push({ href: '/kios', icon: '🏪', label: 'Dashboard Kios' });
-    } else {
+    if (user?.peran !== 'owner') {
       list.push({ href: '/akun/daftar-kios', icon: '🏪', label: 'Buka Kios' });
     }
-    if (user?.peran === 'dokter' || user?.hasDokter || user?.dokter) {
-      list.push({ href: '/portal-dokter', icon: '🏥', label: 'Dashboard Dokter' });
-    } else {
+    if (user?.peran !== 'dokter' && !user?.hasDokter) {
       list.push({ href: '/akun/daftar-dokter', icon: '🏥', label: user?.dokterStatus === 'pending' ? 'Dokter (Pending)' : 'Daftar Dokter' });
     }
-    if (user?.peran === 'grooming' || user?.hasGrooming || user?.grooming) {
-      list.push({ href: '/portal-grooming', icon: '✂️', label: 'Dashboard Grooming' });
-    } else {
+    if (user?.peran !== 'grooming' && !user?.hasGrooming) {
       list.push({ href: '/akun/daftar-grooming', icon: '✂️', label: user?.groomingStatus === 'pending' ? 'Grooming (Pending)' : 'Daftar Grooming' });
     }
     return list;

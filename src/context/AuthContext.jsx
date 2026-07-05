@@ -9,7 +9,7 @@ export function AuthProvider({ children }) {
 
   // On mount: restore session from token
   useEffect(() => {
-    const token = sessionStorage.getItem('petplace_token');
+    const token = localStorage.getItem('petplace_token');
     if (token) {
       authAPI.me()
         .then((data) => {
@@ -17,7 +17,7 @@ export function AuthProvider({ children }) {
         })
         .catch(() => {
           // Token expired or invalid
-          sessionStorage.removeItem('petplace_token');
+          localStorage.removeItem('petplace_token');
           setUser(null);
         })
         .finally(() => setLoading(false));
@@ -27,7 +27,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = (userData, token) => {
-    if (token) sessionStorage.setItem('petplace_token', token);
+    if (token) localStorage.setItem('petplace_token', token);
     setUser(userData);
   };
 
@@ -35,14 +35,14 @@ export function AuthProvider({ children }) {
     try {
       await authAPI.logout();
     } catch (_) {}
-    sessionStorage.removeItem('petplace_token');
+    localStorage.removeItem('petplace_token');
     setUser(null);
   };
 
   const loginWithCredentials = async (email, password) => {
     const result = await authAPI.login(email, password);
     if (result.token) {
-      sessionStorage.setItem('petplace_token', result.token);
+      localStorage.setItem('petplace_token', result.token);
       setUser(result.user);
       return result.user;
     }
@@ -52,7 +52,7 @@ export function AuthProvider({ children }) {
   const register = async (data) => {
     const result = await authAPI.register(data);
     if (result.token) {
-      sessionStorage.setItem('petplace_token', result.token);
+      localStorage.setItem('petplace_token', result.token);
       setUser(result.user);
       return result.user;
     }
