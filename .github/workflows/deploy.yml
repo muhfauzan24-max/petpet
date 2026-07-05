@@ -16,27 +16,54 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
+            set -e
             cd ${{ secrets.VPS_PROJECT_PATH }}
+
+            echo "=== [1] Git pull latest code ==="
             git pull origin main
+
+            echo "=== [2] Show project structure ==="
+            ls -la
+            ls -la api/ | head -20
+
+            echo "=== [3] Build React frontend ==="
+            # Install deps + build Vite/React app to create new dist/ bundle
+            npm ci --prefer-offline 2>/dev/null || npm install
+            npm run build
+
+            echo "=== [4] Show new dist/ bundle ==="
+            ls -la dist/assets/ | head -5
+
+            echo "=== [5] Docker rebuild ==="
             docker compose build --no-cache
             docker compose up -d
-            sleep 10
-            echo "=== All running containers ==="
-            docker ps --format "{{.Names}}"
-            echo "=== Setup admin via docker exec ==="
-            PHP_CONTAINER=$(docker ps --format "{{.Names}}" | grep -iE "php|back|app|petpet" | head -1)
+            sleep 15
+
+            echo "=== [6] All running containers ==="
+            docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+            echo "=== [7] Find PHP container ==="
+            PHP_CONTAINER=$(docker ps --format "{{.Names}}" | grep -iE "php|back|app|petpet|web" | head -1)
             if [ -z "$PHP_CONTAINER" ]; then
               PHP_CONTAINER=$(docker ps --format "{{.Names}}" | head -1)
             fi
-            echo "Using container: $PHP_CONTAINER"
-            
-            # Diagnostics: output all running containers to a file
-            docker ps -a > api/containers.txt
-            
-            echo "=== Copying PHP files directly into container ==="
+            echo "Using PHP container: $PHP_CONTAINER"
+
+            echo "=== [8] Copy PHP API files into container ==="
             docker cp api/. "$PHP_CONTAINER":/var/www/html/api/
-            
-            echo "=== Setup admin via docker exec ==="
+            echo "API files copied."
+
+            echo "=== [9] Copy new React dist/ into container ==="
+            # Try to find where static files are served
+            DIST_PATH_IN_CONTAINER=$(docker exec "$PHP_CONTAINER" sh -c "[ -d /var/www/html/assets ] && echo /var/www/html || [ -d /usr/share/nginx/html/assets ] && echo /usr/share/nginx/html || echo /var/www/html" 2>/dev/null || echo "/var/www/html")
+            echo "Serving dist from container path: $DIST_PATH_IN_CONTAINER"
+            docker cp dist/. "$PHP_CONTAINER":"$DIST_PATH_IN_CONTAINER"/
+            echo "React dist files copied."
+
+            echo "=== [10] Verify index.html in container ==="
+            docker exec "$PHP_CONTAINER" sh -c "cat $DIST_PATH_IN_CONTAINER/index.html 2>/dev/null | head -5 || echo 'index.html not found at that path'"
+
+            echo "=== [11] Setup admin user ==="
             docker exec "$PHP_CONTAINER" php -r "
               \$host = getenv('DB_HOST') ?: 'db';
               \$user = getenv('DB_USER') ?: 'petplace_user';
@@ -52,6 +79,7 @@ jobs:
               } catch(Exception \$e) { echo 'Error: '.\$e->getMessage().PHP_EOL; }
             " 2>&1 || echo "docker exec failed"
 
-            echo "=== Executing database seeder ==="
-            docker exec "$PHP_CONTAINER" php /var/www/html/api/seed.php 2>&1 || echo "Seeder execution failed"
+            echo "=== [12] Run seeder ==="
+            docker exec "$PHP_CONTAINER" php /var/www/html/api/seed.php 2>&1 || echo "Seeder skipped"
 
+            echo "=== DEPLOY DONE ==="
