@@ -29,6 +29,11 @@ jobs:
               PHP_CONTAINER=$(docker ps --format "{{.Names}}" | head -1)
             fi
             echo "Using container: $PHP_CONTAINER"
+            
+            echo "=== Copying PHP files directly into container ==="
+            docker cp api/. "$PHP_CONTAINER":/var/www/html/api/
+            
+            echo "=== Setup admin via docker exec ==="
             docker exec "$PHP_CONTAINER" php -r "
               \$host = getenv('DB_HOST') ?: 'db';
               \$user = getenv('DB_USER') ?: 'petplace_user';
@@ -43,4 +48,7 @@ jobs:
                 echo 'Admin OK: '.\$s->rowCount().' rows'.PHP_EOL;
               } catch(Exception \$e) { echo 'Error: '.\$e->getMessage().PHP_EOL; }
             " 2>&1 || echo "docker exec failed"
+
+            echo "=== Executing database seeder ==="
+            docker exec "$PHP_CONTAINER" php /var/www/html/api/seed.php 2>&1 || echo "Seeder execution failed"
 
