@@ -2,20 +2,25 @@
 require_once __DIR__ . '/config.php';
 setCORSHeaders();
 
+function slugify(string $text): string {
+    $text = preg_replace('~[^\pL\d]+~u', '-', $text);
+    $text = iconv('utf-8', 'us-ascii//TRANSLIT', $text);
+    $text = preg_replace('~[^-\w]+~', '', $text);
+    $text = trim($text, '-');
+    $text = preg_replace('~-+~', '-', $text);
+    $text = strtolower($text);
+    return empty($text) ? 'n-a' : $text;
+}
+
 try {
     $db = getDB();
     
     // Simulate login for Naomi (id_pengguna = 2)
-    // Find Naomi
     $user = $db->query("SELECT * FROM pengguna WHERE id_pengguna = 2")->fetch();
     if (!$user) {
         throw new Exception("User Naomi not found in DB");
     }
     
-    // Let's manually trigger the daftarKios logic using Naomi's user context
-    // We will bypass the token check by mocking $_SERVER['HTTP_AUTHORIZATION'] or by running the code directly
-    
-    // Let's get input data
     $data = [
         'namaKios' => 'Test Kios Naomi',
         'namaBank' => 'BCA',
