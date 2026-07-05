@@ -149,7 +149,9 @@ try {
         'Bandung', -6.9038, 107.6186, 'Klinik PetCare, Jl. Riau No. 12, Bandung',
         75000, 1, 4.9, 12, 150, '11223344', 'BCA'
     ]);
-    $dokter1Id = $db->query("SELECT id_dokter FROM dokter_hewan WHERE id_pengguna = ?",$doc1Id)->fetchColumn();
+    $stmtGetDok = $db->prepare("SELECT id_dokter FROM dokter_hewan WHERE id_pengguna = ?");
+    $stmtGetDok->execute([$doc1Id]);
+    $dokter1Id = $stmtGetDok->fetchColumn();
     if (!$dokter1Id) {
         $dokter1Id = $db->query("SELECT id_dokter FROM dokter_hewan WHERE nama_dokter = 'Drh. Rian Gunawan'")->fetchColumn();
     }
