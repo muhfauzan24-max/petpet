@@ -18,5 +18,13 @@ jobs:
           script: |
             cd ${{ secrets.VPS_PROJECT_PATH }}
             git pull origin main
+            echo "=== Services running ==="
+            docker compose ps
+            echo "=== Building ==="
             docker compose build --no-cache
             docker compose up -d
+            sleep 5
+            echo "=== Copying PHP files directly into container ==="
+            for svc in backend app php web server petpet; do
+              docker compose cp api/. ${svc}:/var/www/html/api/ 2>/dev/null && echo "✅ Copied to ${svc}" && break || echo "❌ ${svc} not found"
+            done
