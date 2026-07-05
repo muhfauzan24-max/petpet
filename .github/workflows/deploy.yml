@@ -18,68 +18,9 @@ jobs:
           script: |
             set -e
             cd ${{ secrets.VPS_PROJECT_PATH }}
-
             echo "=== [1] Git pull latest code ==="
             git pull origin main
-
-            echo "=== [2] Show project structure ==="
-            ls -la
-            ls -la api/ | head -20
-
-            echo "=== [3] Build React frontend ==="
-            # Install deps + build Vite/React app to create new dist/ bundle
-            npm ci --prefer-offline 2>/dev/null || npm install
-            npm run build
-
-            echo "=== [4] Show new dist/ bundle ==="
-            ls -la dist/assets/ | head -5
-
-            echo "=== [5] Docker rebuild ==="
-            docker compose build --no-cache
-            docker compose up -d
-            sleep 15
-
-            echo "=== [6] All running containers ==="
-            docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
-
-            echo "=== [7] Find PHP container ==="
-            PHP_CONTAINER=$(docker ps --format "{{.Names}}" | grep -iE "php|back|app|petpet|web" | head -1)
-            if [ -z "$PHP_CONTAINER" ]; then
-              PHP_CONTAINER=$(docker ps --format "{{.Names}}" | head -1)
-            fi
-            echo "Using PHP container: $PHP_CONTAINER"
-
-            echo "=== [8] Copy PHP API files into container ==="
-            docker cp api/. "$PHP_CONTAINER":/var/www/html/api/
-            echo "API files copied."
-
-            echo "=== [9] Copy new React dist/ into container ==="
-            # Try to find where static files are served
-            DIST_PATH_IN_CONTAINER=$(docker exec "$PHP_CONTAINER" sh -c "[ -d /var/www/html/assets ] && echo /var/www/html || [ -d /usr/share/nginx/html/assets ] && echo /usr/share/nginx/html || echo /var/www/html" 2>/dev/null || echo "/var/www/html")
-            echo "Serving dist from container path: $DIST_PATH_IN_CONTAINER"
-            docker cp dist/. "$PHP_CONTAINER":"$DIST_PATH_IN_CONTAINER"/
-            echo "React dist files copied."
-
-            echo "=== [10] Verify index.html in container ==="
-            docker exec "$PHP_CONTAINER" sh -c "cat $DIST_PATH_IN_CONTAINER/index.html 2>/dev/null | head -5 || echo 'index.html not found at that path'"
-
-            echo "=== [11] Setup admin user ==="
-            docker exec "$PHP_CONTAINER" php -r "
-              \$host = getenv('DB_HOST') ?: 'db';
-              \$user = getenv('DB_USER') ?: 'petplace_user';
-              \$pass = getenv('DB_PASS') ?: '';
-              \$name = getenv('DB_NAME') ?: 'petplace';
-              try {
-                \$pdo = new PDO('mysql:host='.\$host.';dbname='.\$name.';charset=utf8mb4', \$user, \$pass);
-                \$hash = password_hash('admin123', PASSWORD_BCRYPT);
-                \$sql = 'INSERT INTO pengguna (nama_lengkap,email,password,peran,status) VALUES (\"Admin\",\"admin@petplace.id\",?,\"admin\",\"aktif\") ON DUPLICATE KEY UPDATE password=?,status=\"aktif\"';
-                \$s = \$pdo->prepare(\$sql);
-                \$s->execute([\$hash,\$hash]);
-                echo 'Admin OK: '.\$s->rowCount().' rows'.PHP_EOL;
-              } catch(Exception \$e) { echo 'Error: '.\$e->getMessage().PHP_EOL; }
-            " 2>&1 || echo "docker exec failed"
-
-            echo "=== [12] Run seeder ==="
-            docker exec "$PHP_CONTAINER" php /var/www/html/api/seed.php 2>&1 || echo "Seeder skipped"
-
-            echo "=== DEPLOY DONE ==="
+            echo "=== [2] Docker rebuild (React build happens inside container) ==="
+            docker compose up -d --build
+            echo "=== [3] Deploy selesai ==="
+            docker compose ps
