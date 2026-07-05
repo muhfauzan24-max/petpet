@@ -37,7 +37,8 @@ export const getImageUrl = (path) => {
 
 // ---- HTTP helpers ----
 
-const getToken = () => localStorage.getItem('petplace_token');
+// sessionStorage: tiap tab browser punya token sendiri → user & admin bisa buka tab berbeda tanpa konflik
+const getToken = () => sessionStorage.getItem('petplace_token');
 
 const headers = (extra = {}) => ({
   'Content-Type': 'application/json',

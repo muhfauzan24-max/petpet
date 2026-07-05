@@ -8,8 +8,10 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   // On mount: restore session from token
+  // sessionStorage dipakai agar tiap tab punya session sendiri
+  // (tab user & tab admin tidak saling menimpa)
   useEffect(() => {
-    const token = localStorage.getItem('petplace_token');
+    const token = sessionStorage.getItem('petplace_token');
     if (token) {
       authAPI.me()
         .then((data) => {
@@ -17,7 +19,7 @@ export function AuthProvider({ children }) {
         })
         .catch(() => {
           // Token expired or invalid
-          localStorage.removeItem('petplace_token');
+          sessionStorage.removeItem('petplace_token');
           setUser(null);
         })
         .finally(() => setLoading(false));
@@ -27,7 +29,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = (userData, token) => {
-    if (token) localStorage.setItem('petplace_token', token);
+    if (token) sessionStorage.setItem('petplace_token', token);
     setUser(userData);
   };
 
@@ -35,14 +37,14 @@ export function AuthProvider({ children }) {
     try {
       await authAPI.logout();
     } catch (_) {}
-    localStorage.removeItem('petplace_token');
+    sessionStorage.removeItem('petplace_token');
     setUser(null);
   };
 
   const loginWithCredentials = async (email, password) => {
     const result = await authAPI.login(email, password);
     if (result.token) {
-      localStorage.setItem('petplace_token', result.token);
+      sessionStorage.setItem('petplace_token', result.token);
       setUser(result.user);
       return result.user;
     }
@@ -52,7 +54,7 @@ export function AuthProvider({ children }) {
   const register = async (data) => {
     const result = await authAPI.register(data);
     if (result.token) {
-      localStorage.setItem('petplace_token', result.token);
+      sessionStorage.setItem('petplace_token', result.token);
       setUser(result.user);
       return result.user;
     }
