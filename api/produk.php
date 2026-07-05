@@ -106,7 +106,7 @@ function detailProduk(int $id): void {
                p.harga, p.harga_diskon AS hargaDiskon, p.berat_gram AS beratGram,
                p.foto_utama AS foto, p.terjual, p.rating_avg AS rating,
                p.total_ulasan AS totalUlasan, p.status, p.created_at AS createdAt,
-               k.id_kios AS idKios, k.nama_kios AS namaKios, k.rating AS ratingKios,
+               k.id_kios AS idKios, k.nama_kios AS namaKios, 5.0 AS ratingKios,
                kp.id_kategori AS idKategori, kp.nama_kategori AS namaKategori,
                sp.jumlah_stok AS stok
         FROM produk p
