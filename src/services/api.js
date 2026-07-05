@@ -37,7 +37,7 @@ export const getImageUrl = (path) => {
 
 // ---- HTTP helpers ----
 
-const getToken = () => localStorage.getItem('petplace_token');
+const getToken = () => sessionStorage.getItem('petplace_token');
 
 const headers = (extra = {}) => ({
   'Content-Type': 'application/json',
