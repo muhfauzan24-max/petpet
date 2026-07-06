@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import DashboardSidebar from "../../components/layout/DashboardSidebar";
-import { formatRupiah } from "../../data/mockData";
+import { formatRupiah } from "../../services/api";
 import { groomingAPI } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 import { RefreshCw, Scissors, Calendar, DollarSign } from "lucide-react";
@@ -24,7 +24,7 @@ export default function GroomingPortalDashboard() {
     try {
       const [statsData, bookData] = await Promise.all([
         groomingAPI.stats(idGrooming),
-        groomingAPI.bookings(idGrooming),
+        groomingAPI.getBooking(),
       ]);
       setStats(statsData);
       setBookings(bookData || []);

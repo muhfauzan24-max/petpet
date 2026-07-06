@@ -144,6 +144,7 @@ export const dokterAPI = {
   booking: (data) => api.post('dokter.php?action=booking', data),
   getJanji: () => api.get('dokter.php?action=janji'),
   janji: (id) => api.get(`dokter.php?action=janji&id=${id}`),
+  updateStatusJanji: (id, status) => api.put(`dokter.php?action=janji-status&id=${id}`, { status }),
   stats: (id) => api.get(`dokter.php?action=stats&id=${id}`),
 };
 
@@ -159,7 +160,7 @@ export const groomingAPI = {
   reject: (id) => api.post(`grooming.php?action=reject&id=${id}`),
   booking: (data) => api.post('grooming.php?action=booking', data),
   getBooking: () => api.get('grooming.php?action=booking'),
-  bookings: (id) => api.get(`grooming.php?action=bookings&id=${id}`),
+  updateStatusBooking: (id, status) => api.put(`grooming.php?action=booking-status&id=${id}`, { status }),
   stats: (id) => api.get(`grooming.php?action=stats&id=${id}`),
 };
 

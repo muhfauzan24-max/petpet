@@ -1,39 +1,85 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { MapPin, Clock, Phone, Star, Send, Calendar, MessageCircle, CheckCircle, ArrowLeft } from 'lucide-react';
-import { dokterData, formatRupiah } from '../data/mockData';
+import { MapPin, Phone, Send, Calendar, MessageCircle, CheckCircle, ArrowLeft } from 'lucide-react';
+import { formatRupiah } from '../services/api';
+import { dokterAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import RatingStars from '../components/ui/RatingStars';
 
 export default function DokterDetail() {
   const { id } = useParams();
-  const dokter = dokterData.find(d => d.id === Number(id));
   const { user } = useAuth();
+  const [dokter, setDokter] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const [showBooking, setShowBooking] = useState(false);
   const [showReview, setShowReview] = useState(false);
   const [booking, setBooking] = useState({ tanggal: '', jam: '', keluhan: '', namaHewan: '', jenisHewan: 'kucing' });
   const [review, setReview] = useState({ bintang: 5, komentar: '' });
   const [booked, setBooked] = useState(false);
   const [reviewSent, setReviewSent] = useState(false);
-  const [ulasan, setUlasan] = useState(dokter?.ulasan || []);
+  const [bookingLoading, setBookingLoading] = useState(false);
 
-  if (!dokter) return <div style={{ padding: '5rem', textAlign: 'center' }}><h2>Dokter tidak ditemukan</h2></div>;
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const data = await dokterAPI.detail(id);
+        if (!data || !data.id) { setNotFound(true); }
+        else { setDokter(data); }
+      } catch (err) {
+        console.error(err);
+        setNotFound(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [id]);
 
-  const handleBook = () => {
+  const handleBook = async () => {
     if (!booking.tanggal || !booking.jam || !booking.namaHewan) return;
-    const janji = { id: Date.now(), idDokter: dokter.id, ...booking, status: 'menunggu', createdAt: new Date().toISOString() };
-    const list = JSON.parse(localStorage.getItem('petplace_janji_dokter') || '[]');
-    list.push(janji);
-    localStorage.setItem('petplace_janji_dokter', JSON.stringify(list));
-    setBooked(true); setShowBooking(false);
+    setBookingLoading(true);
+    try {
+      await dokterAPI.booking({
+        idDokter: dokter.id,
+        tanggal: booking.tanggal,
+        jam: booking.jam,
+        keluhan: booking.keluhan,
+        namaHewan: booking.namaHewan,
+        jenisHewan: booking.jenisHewan,
+      });
+      setBooked(true);
+      setShowBooking(false);
+    } catch (err) {
+      alert(err.message || 'Gagal membuat janji. Coba lagi.');
+    } finally {
+      setBookingLoading(false);
+    }
   };
 
   const handleReview = () => {
     if (!review.komentar.trim()) return;
-    const newU = { id: Date.now(), nama: user?.nama || 'Anonim', bintang: review.bintang, komentar: review.komentar, tanggal: new Date().toLocaleDateString('id-ID') };
-    setUlasan(prev => [newU, ...prev]);
-    setReviewSent(true); setShowReview(false);
+    setReviewSent(true);
+    setShowReview(false);
   };
+
+  if (loading) return (
+    <div style={{ padding: '5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+      <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⏳</div>
+      <p>Memuat profil dokter...</p>
+    </div>
+  );
+
+  if (notFound || !dokter) return (
+    <div style={{ padding: '5rem', textAlign: 'center' }}>
+      <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🏥</div>
+      <h2>Dokter tidak ditemukan</h2>
+      <Link to="/dokter" className="btn btn-secondary" style={{ marginTop: '1rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+        <ArrowLeft size={16} /> Kembali ke Daftar Dokter
+      </Link>
+    </div>
+  );
 
   return (
     <div style={{ padding: '2rem 0 5rem', minHeight: '100vh' }}>
@@ -48,7 +94,11 @@ export default function DokterDetail() {
             <div className="card" style={{ padding: '2rem', marginBottom: '1.5rem' }}>
               <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start' }}>
                 <div style={{ position: 'relative', flexShrink: 0 }}>
-                  <img src={dokter.foto} alt={dokter.nama} style={{ width: 100, height: 100, borderRadius: '50%', border: '3px solid var(--primary)' }} />
+                  <img
+                    src={dokter.foto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${dokter.nama}`}
+                    alt={dokter.nama}
+                    style={{ width: 100, height: 100, borderRadius: '50%', border: '3px solid var(--primary)', objectFit: 'cover' }}
+                  />
                   <div style={{
                     position: 'absolute', bottom: 4, right: 4, width: 16, height: 16, borderRadius: '50%',
                     background: dokter.statusReady ? 'var(--accent)' : '#EF4444',
@@ -59,22 +109,22 @@ export default function DokterDetail() {
                 <div>
                   <h1 style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>{dokter.nama}</h1>
                   <p style={{ color: 'var(--primary)', fontWeight: 600, marginBottom: '0.25rem' }}>{dokter.spesialisasi}</p>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>NO. STR: {dokter.noStr}</p>
+                  {dokter.noStr && <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>NO. STR: {dokter.noStr}</p>}
                   <div style={{ marginTop: '0.75rem' }}>
-                    <RatingStars rating={dokter.rating} size={15} totalUlasan={dokter.totalUlasan} />
+                    <RatingStars rating={parseFloat(dokter.rating) || 0} size={15} totalUlasan={dokter.totalUlasan} />
                   </div>
                 </div>
               </div>
 
               <hr className="divider" />
-              <p style={{ lineHeight: 1.8 }}>{dokter.deskripsi}</p>
+              {dokter.deskripsi && <p style={{ lineHeight: 1.8 }}>{dokter.deskripsi}</p>}
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1.5rem' }}>
                 {[
-                  { label: 'Lokasi', value: dokter.alamat, icon: MapPin },
-                  { label: 'Kota', value: dokter.kota, icon: MapPin },
-                  { label: 'Total Pasien', value: `${dokter.totalPasien}+`, icon: CheckCircle },
-                  { label: 'Harga Konsultasi', value: formatRupiah(dokter.hargaKonsultasi), icon: null },
+                  { label: 'Lokasi', value: dokter.alamat || '-' },
+                  { label: 'Kota', value: dokter.kota || '-' },
+                  { label: 'Total Pasien', value: dokter.totalPasien ? `${dokter.totalPasien}+` : '0' },
+                  { label: 'Harga Konsultasi', value: formatRupiah(dokter.hargaKonsultasi) },
                 ].map(item => (
                   <div key={item.label} style={{ padding: '0.75rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)' }}>
                     <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>{item.label}</div>
@@ -85,22 +135,24 @@ export default function DokterDetail() {
             </div>
 
             {/* Jadwal */}
-            <div className="card" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
-              <h3 style={{ marginBottom: '1rem' }}>⏰ Jadwal Praktik</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                {dokter.jadwal.map(j => (
-                  <div key={j.hari} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 1rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)' }}>
-                    <span style={{ fontWeight: 600 }}>{j.hari}</span>
-                    <span style={{ color: 'var(--primary)', fontWeight: 600 }}>{j.jam}</span>
-                  </div>
-                ))}
-              </div>
-              {!dokter.statusReady && dokter.jadwalSelanjutnya && (
-                <div className="alert alert-warning" style={{ marginTop: '1rem' }}>
-                  📅 Dokter tidak ready saat ini. Jadwal terdekat: <strong>{dokter.jadwalSelanjutnya}</strong>
+            {dokter.jadwal && dokter.jadwal.length > 0 && (
+              <div className="card" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
+                <h3 style={{ marginBottom: '1rem' }}>⏰ Jadwal Praktik</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {dokter.jadwal.map(j => (
+                    <div key={j.hari} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.6rem 1rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)' }}>
+                      <span style={{ fontWeight: 600 }}>{j.hari}</span>
+                      <span style={{ color: 'var(--primary)', fontWeight: 600 }}>{j.jam}</span>
+                    </div>
+                  ))}
                 </div>
-              )}
-            </div>
+                {!dokter.statusReady && dokter.jadwalSelanjutnya && (
+                  <div className="alert alert-warning" style={{ marginTop: '1rem' }}>
+                    📅 Dokter tidak ready saat ini. Jadwal terdekat: <strong>{dokter.jadwalSelanjutnya}</strong>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Ulasan */}
             <div className="card" style={{ padding: '1.5rem' }}>
@@ -130,21 +182,23 @@ export default function DokterDetail() {
                 </div>
               )}
 
-              {ulasan.length === 0 ? (
+              {(!dokter.ulasan || dokter.ulasan.length === 0) && !reviewSent ? (
                 <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem 0' }}>Belum ada ulasan</p>
-              ) : ulasan.map(u => (
-                <div key={u.id} style={{ padding: '1rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', marginBottom: '0.75rem', border: '1px solid var(--border)' }}>
-                  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '0.5rem' }}>
-                    <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${u.nama}`} alt={u.nama} className="avatar avatar-sm" />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 700, fontSize: '0.875rem' }}>{u.nama}</div>
-                      <RatingStars rating={u.bintang} size={11} showNumber={false} />
+              ) : (
+                (dokter.ulasan || []).map(u => (
+                  <div key={u.id} style={{ padding: '1rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', marginBottom: '0.75rem', border: '1px solid var(--border)' }}>
+                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '0.5rem' }}>
+                      <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${u.nama}`} alt={u.nama} className="avatar avatar-sm" />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 700, fontSize: '0.875rem' }}>{u.nama}</div>
+                        <RatingStars rating={u.bintang} size={11} showNumber={false} />
+                      </div>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{u.tanggal}</span>
                     </div>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{u.tanggal}</span>
+                    <p style={{ fontSize: '0.875rem', lineHeight: 1.6 }}>{u.komentar}</p>
                   </div>
-                  <p style={{ fontSize: '0.875rem', lineHeight: 1.6 }}>{u.komentar}</p>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
 
@@ -173,9 +227,11 @@ export default function DokterDetail() {
                 <>
                   {!showBooking ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                      <button onClick={() => user ? setShowBooking(true) : null}
+                      <button
+                        onClick={() => user ? setShowBooking(true) : null}
                         className="btn btn-primary btn-full"
-                        style={{ opacity: !user ? 0.6 : 1 }}>
+                        style={{ opacity: !user ? 0.6 : 1 }}
+                      >
                         <Calendar size={16} />
                         {user ? 'Buat Janji Sekarang' : 'Login untuk Buat Janji'}
                       </button>
@@ -214,7 +270,9 @@ export default function DokterDetail() {
                         <textarea value={booking.keluhan} onChange={e => setBooking(b => ({ ...b, keluhan: e.target.value }))} className="form-input" placeholder="Jelaskan keluhan hewan Anda..." rows={3} />
                       </div>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button onClick={handleBook} className="btn btn-primary" style={{ flex: 1 }}>Konfirmasi Janji</button>
+                        <button onClick={handleBook} disabled={bookingLoading} className="btn btn-primary" style={{ flex: 1 }}>
+                          {bookingLoading ? 'Menyimpan...' : 'Konfirmasi Janji'}
+                        </button>
                         <button onClick={() => setShowBooking(false)} className="btn btn-secondary">Batal</button>
                       </div>
                     </div>
@@ -224,14 +282,16 @@ export default function DokterDetail() {
             </div>
 
             {/* Payment info */}
-            <div className="card" style={{ padding: '1.25rem' }}>
-              <h5 style={{ marginBottom: '0.75rem', fontSize: '0.875rem' }}>💳 Info Pembayaran</h5>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                <p>Bank: <strong style={{ color: 'var(--text-primary)' }}>{dokter.namaBank}</strong></p>
-                <p>No. Rek: <strong style={{ color: 'var(--text-primary)' }}>{dokter.noRekening}</strong></p>
-                <p style={{ marginTop: '0.5rem', fontSize: '0.75rem' }}>Upload bukti bayar setelah janji dikonfirmasi oleh dokter.</p>
+            {(dokter.namaBank || dokter.noRekening) && (
+              <div className="card" style={{ padding: '1.25rem' }}>
+                <h5 style={{ marginBottom: '0.75rem', fontSize: '0.875rem' }}>💳 Info Pembayaran</h5>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                  {dokter.namaBank && <p>Bank: <strong style={{ color: 'var(--text-primary)' }}>{dokter.namaBank}</strong></p>}
+                  {dokter.noRekening && <p>No. Rek: <strong style={{ color: 'var(--text-primary)' }}>{dokter.noRekening}</strong></p>}
+                  <p style={{ marginTop: '0.5rem', fontSize: '0.75rem' }}>Upload bukti bayar setelah janji dikonfirmasi oleh dokter.</p>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>

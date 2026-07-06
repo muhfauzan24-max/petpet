@@ -15,6 +15,8 @@ if ($method === 'GET' && !$id && !$action) {
     detailGrooming($id);
 } elseif ($method === 'POST' && $action === 'daftar') {
     daftarGrooming();
+} elseif ($method === 'PUT' && $action === 'booking-status' && $id) {
+    updateStatusBooking($id);
 } elseif ($method === 'PUT' && $id) {
     updateGrooming($id);
 } elseif ($method === 'POST' && $action === 'approve' && $id) {
@@ -234,18 +236,25 @@ function getBookingGrooming(): void {
     
     if ($user['peran'] === 'grooming') {
         $stmt = $db->prepare("
-            SELECT b.*, p.nama_lengkap AS namaPembeli, g.nama_usaha AS namaGrooming, l.nama_layanan AS namaLayanan
+            SELECT b.id_booking AS id, b.tanggal, b.jam, b.status, b.harga AS hargaLayanan,
+                   b.nama_hewan AS namaHewan, b.jenis_hewan AS jenisHewan, b.catatan,
+                   p.nama_lengkap AS namaPelanggan,
+                   g.nama_usaha AS namaGrooming,
+                   l.nama_layanan AS namaLayanan
             FROM booking_grooming b
             JOIN pengguna p ON b.id_pengguna = p.id_pengguna
             JOIN penyedia_grooming g ON b.id_grooming = g.id_grooming
             JOIN layanan_grooming l ON b.id_layanan = l.id_layanan
             WHERE g.id_pengguna = ?
-            ORDER BY b.tanggal DESC
+            ORDER BY b.tanggal DESC, b.jam DESC
         ");
         $stmt->execute([$user['id_pengguna']]);
     } else {
         $stmt = $db->prepare("
-            SELECT b.*, g.nama_usaha AS namaGrooming, l.nama_layanan AS namaLayanan
+            SELECT b.id_booking AS id, b.tanggal, b.jam, b.status, b.harga AS hargaLayanan,
+                   b.nama_hewan AS namaHewan, b.jenis_hewan AS jenisHewan, b.catatan,
+                   g.nama_usaha AS namaGrooming,
+                   l.nama_layanan AS namaLayanan
             FROM booking_grooming b
             JOIN penyedia_grooming g ON b.id_grooming = g.id_grooming
             JOIN layanan_grooming l ON b.id_layanan = l.id_layanan
@@ -256,4 +265,27 @@ function getBookingGrooming(): void {
     }
     
     sendSuccess($stmt->fetchAll());
+}
+
+function updateStatusBooking(int $id): void {
+    $user = requireAuth();
+    $data = getRequestBody();
+    $db   = getDB();
+    
+    if (empty($data['status'])) sendError('Status wajib diisi');
+    
+    $allowed = ['dikonfirmasi', 'selesai', 'dibatalkan'];
+    if (!in_array($data['status'], $allowed)) sendError('Status tidak valid');
+    
+    // Pastikan booking milik grooming yang login
+    $stmt = $db->prepare("
+        SELECT b.id_booking FROM booking_grooming b
+        JOIN penyedia_grooming g ON b.id_grooming = g.id_grooming
+        WHERE b.id_booking = ? AND g.id_pengguna = ?
+    ");
+    $stmt->execute([$id, $user['id_pengguna']]);
+    if (!$stmt->fetch()) sendError('Booking tidak ditemukan atau bukan milik Anda', 403);
+    
+    $db->prepare("UPDATE booking_grooming SET status = ? WHERE id_booking = ?")->execute([$data['status'], $id]);
+    sendSuccess(null, 'Status booking berhasil diperbarui');
 }

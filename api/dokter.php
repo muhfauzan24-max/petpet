@@ -15,6 +15,8 @@ if ($method === 'GET' && !$id && !$action) {
     detailDokter($id);
 } elseif ($method === 'POST' && $action === 'daftar') {
     daftarDokter();
+} elseif ($method === 'PUT' && $action === 'janji-status' && $id) {
+    updateStatusJanji($id);
 } elseif ($method === 'PUT' && $id) {
     updateDokter($id);
 } elseif ($method === 'POST' && $action === 'approve' && $id) {
@@ -92,11 +94,45 @@ function detailDokter(int $id): void {
     $ulStmt->execute([$id]);
     $dokter['ulasan'] = $ulStmt->fetchAll();
     
-    $dokter['statusReady'] = (bool)$dokter['status_ready'];
-    $dokter['verified'] = (bool)$dokter['verified'];
-    $dokter['hargaKonsultasi'] = (float)$dokter['harga_konsultasi'];
+    // Alias snake_case ke camelCase untuk frontend
+    $dokter['id']               = (int)$dokter['id_dokter'];
+    $dokter['statusReady']      = (bool)$dokter['status_ready'];
+    $dokter['verified']         = (bool)$dokter['verified'];
+    $dokter['hargaKonsultasi']  = (float)$dokter['harga_konsultasi'];
+    $dokter['nama']             = $dokter['nama_dokter'] ?? '';
+    $dokter['noStr']            = $dokter['no_str'] ?? '';
+    $dokter['noRekening']       = $dokter['no_rekening'] ?? '';
+    $dokter['namaBank']         = $dokter['nama_bank'] ?? '';
+    $dokter['alamat']           = $dokter['alamat_praktik'] ?? '';
+    $dokter['kota']             = $dokter['kota'] ?? '';
+    $dokter['totalPasien']      = (int)($dokter['total_pasien'] ?? 0);
+    $dokter['totalUlasan']      = (int)($dokter['total_ulasan'] ?? 0);
+    $dokter['rating']           = (float)($dokter['rating_avg'] ?? 0);
     
     sendSuccess($dokter);
+}
+
+function updateStatusJanji(int $id): void {
+    $user = requireAuth();
+    $data = getRequestBody();
+    $db   = getDB();
+    
+    if (empty($data['status'])) sendError('Status wajib diisi');
+    
+    $allowed = ['dikonfirmasi', 'selesai', 'dibatalkan'];
+    if (!in_array($data['status'], $allowed)) sendError('Status tidak valid');
+    
+    // Pastikan janji milik dokter yang login
+    $stmt = $db->prepare("
+        SELECT j.id_janji FROM janji_dokter j
+        JOIN dokter_hewan d ON j.id_dokter = d.id_dokter
+        WHERE j.id_janji = ? AND d.id_pengguna = ?
+    ");
+    $stmt->execute([$id, $user['id_pengguna']]);
+    if (!$stmt->fetch()) sendError('Janji tidak ditemukan atau bukan milik Anda', 403);
+    
+    $db->prepare("UPDATE janji_dokter SET status = ? WHERE id_janji = ?")->execute([$data['status'], $id]);
+    sendSuccess(null, 'Status janji berhasil diperbarui');
 }
 
 function daftarDokter(): void {
@@ -225,7 +261,9 @@ function getJanjiDokter(): void {
     
     if ($user['peran'] === 'dokter') {
         $stmt = $db->prepare("
-            SELECT j.*, p.nama_lengkap AS namaPembeli, d.nama_dokter AS namaDokter
+            SELECT j.id_janji AS id, j.tanggal, j.jam, j.keluhan, j.status,
+                   j.nama_hewan AS namaHewan, j.jenis_hewan AS jenisHewan, j.harga,
+                   p.nama_lengkap AS namaPasien, d.nama_dokter AS namaDokter
             FROM janji_dokter j
             JOIN pengguna p ON j.id_pengguna = p.id_pengguna
             JOIN dokter_hewan d ON j.id_dokter = d.id_dokter
@@ -235,7 +273,9 @@ function getJanjiDokter(): void {
         $stmt->execute([$user['id_pengguna']]);
     } else {
         $stmt = $db->prepare("
-            SELECT j.*, d.nama_dokter AS namaDokter, d.foto AS fotoDokter
+            SELECT j.id_janji AS id, j.tanggal, j.jam, j.keluhan, j.status,
+                   j.nama_hewan AS namaHewan, j.jenis_hewan AS jenisHewan, j.harga,
+                   d.nama_dokter AS namaDokter, d.foto AS fotoDokter
             FROM janji_dokter j
             JOIN dokter_hewan d ON j.id_dokter = d.id_dokter
             WHERE j.id_pengguna = ?

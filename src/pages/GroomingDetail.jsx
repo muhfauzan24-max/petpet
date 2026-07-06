@@ -1,40 +1,88 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { MapPin, Clock, Star, Send, MessageCircle, ArrowLeft, Check } from 'lucide-react';
-import { groomingData, formatRupiah } from '../data/mockData';
+import { MapPin, Clock, Send, MessageCircle, ArrowLeft, Check } from 'lucide-react';
+import { formatRupiah } from '../services/api';
+import { groomingAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import RatingStars from '../components/ui/RatingStars';
 
 export default function GroomingDetail() {
   const { id } = useParams();
-  const data = groomingData.find(g => g.id === Number(id));
   const { user } = useAuth();
+  const [grooming, setGrooming] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const [selectedLayanan, setSelectedLayanan] = useState(null);
   const [showBooking, setShowBooking] = useState(false);
   const [booking, setBooking] = useState({ tanggal: '', jam: '', namaHewan: '', jenisHewan: 'kucing', ras: '', catatan: '' });
   const [booked, setBooked] = useState(false);
+  const [bookingLoading, setBookingLoading] = useState(false);
   const [showReview, setShowReview] = useState(false);
   const [review, setReview] = useState({ bintang: 5, komentar: '' });
-  const [ulasan, setUlasan] = useState(data?.ulasan || []);
   const [reviewSent, setReviewSent] = useState(false);
 
-  if (!data) return <div style={{ padding: '5rem', textAlign: 'center' }}><h2>Data tidak ditemukan</h2></div>;
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const data = await groomingAPI.detail(id);
+        if (!data || !data.id) { setNotFound(true); }
+        else { setGrooming(data); }
+      } catch (err) {
+        console.error(err);
+        setNotFound(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [id]);
 
-  const handleBook = () => {
+  const handleBook = async () => {
     if (!selectedLayanan || !booking.tanggal || !booking.jam || !booking.namaHewan) return;
-    const b = { id: Date.now(), idGrooming: data.id, idLayanan: selectedLayanan.id, ...booking, harga: selectedLayanan.harga, status: 'menunggu', createdAt: new Date().toISOString() };
-    const list = JSON.parse(localStorage.getItem('petplace_booking_grooming') || '[]');
-    list.push(b);
-    localStorage.setItem('petplace_booking_grooming', JSON.stringify(list));
-    setBooked(true); setShowBooking(false);
+    setBookingLoading(true);
+    try {
+      await groomingAPI.booking({
+        idGrooming: grooming.id,
+        idLayanan: selectedLayanan.id,
+        tanggal: booking.tanggal,
+        jam: booking.jam,
+        namaHewan: booking.namaHewan,
+        jenisHewan: booking.jenisHewan,
+        ras: booking.ras,
+        catatan: booking.catatan,
+      });
+      setBooked(true);
+      setShowBooking(false);
+    } catch (err) {
+      alert(err.message || 'Gagal membuat booking. Coba lagi.');
+    } finally {
+      setBookingLoading(false);
+    }
   };
 
   const handleReview = () => {
     if (!review.komentar.trim()) return;
-    const newU = { id: Date.now(), nama: user?.nama || 'Anonim', bintang: review.bintang, komentar: review.komentar, tanggal: new Date().toLocaleDateString('id-ID') };
-    setUlasan(prev => [newU, ...prev]);
-    setReviewSent(true); setShowReview(false);
+    setReviewSent(true);
+    setShowReview(false);
   };
+
+  if (loading) return (
+    <div style={{ padding: '5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+      <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⏳</div>
+      <p>Memuat profil grooming...</p>
+    </div>
+  );
+
+  if (notFound || !grooming) return (
+    <div style={{ padding: '5rem', textAlign: 'center' }}>
+      <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>✂️</div>
+      <h2>Grooming tidak ditemukan</h2>
+      <Link to="/grooming" className="btn btn-secondary" style={{ marginTop: '1rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+        <ArrowLeft size={16} /> Kembali ke Daftar Grooming
+      </Link>
+    </div>
+  );
 
   return (
     <div style={{ padding: '2rem 0 5rem', minHeight: '100vh' }}>
@@ -45,11 +93,15 @@ export default function GroomingDetail() {
 
         {/* Hero Image */}
         <div style={{ height: 280, borderRadius: 'var(--radius-xl)', overflow: 'hidden', marginBottom: '2rem', position: 'relative' }}>
-          <img src={data.foto} alt={data.nama} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <img
+            src={grooming.foto || 'https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?w=800'}
+            alt={grooming.nama}
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          />
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.3) 100%)' }} />
           <div style={{ position: 'absolute', left: '2rem', bottom: '2rem' }}>
-            <h1 style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>{data.nama}</h1>
-            <RatingStars rating={data.rating} size={16} totalUlasan={data.totalUlasan} />
+            <h1 style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>{grooming.nama}</h1>
+            <RatingStars rating={parseFloat(grooming.rating) || 0} size={16} totalUlasan={grooming.totalUlasan} />
           </div>
         </div>
 
@@ -57,13 +109,13 @@ export default function GroomingDetail() {
           <div>
             {/* Info */}
             <div className="card" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
-              <p style={{ lineHeight: 1.8, marginBottom: '1.25rem' }}>{data.deskripsi}</p>
+              {grooming.deskripsi && <p style={{ lineHeight: 1.8, marginBottom: '1.25rem' }}>{grooming.deskripsi}</p>}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                 {[
-                  { label: 'Alamat', value: data.alamat },
-                  { label: 'Kota', value: data.kota },
-                  { label: 'Jam Operasi', value: `${data.jamBuka} - ${data.jamTutup}` },
-                  { label: 'Hewan Dilayani', value: data.jenisHewan === 'keduanya' ? 'Kucing & Anjing' : data.jenisHewan },
+                  { label: 'Alamat', value: grooming.alamat || '-' },
+                  { label: 'Kota', value: grooming.kota || '-' },
+                  { label: 'Jam Operasi', value: `${grooming.jamBuka || '-'} - ${grooming.jamTutup || '-'}` },
+                  { label: 'Hewan Dilayani', value: grooming.jenisHewan === 'keduanya' ? 'Kucing & Anjing' : (grooming.jenisHewan || '-') },
                 ].map(item => (
                   <div key={item.label} style={{ padding: '0.75rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)' }}>
                     <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>{item.label}</div>
@@ -74,26 +126,36 @@ export default function GroomingDetail() {
             </div>
 
             {/* Layanan */}
-            <div className="card" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
-              <h3 style={{ marginBottom: '1rem' }}>✂️ Layanan Tersedia</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {data.layanan.map(l => (
-                  <div key={l.id}
-                    onClick={() => { setSelectedLayanan(l); setShowBooking(true); }}
-                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: selectedLayanan?.id === l.id ? 'rgba(249,115,22,0.1)' : 'var(--bg-secondary)', border: `1px solid ${selectedLayanan?.id === l.id ? 'var(--primary)' : 'var(--border)'}`, borderRadius: 'var(--radius-md)', cursor: 'pointer', transition: 'var(--transition)' }}>
-                    <div>
-                      <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{l.nama}</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                        ⏱️ {l.durasi} menit • {l.jenisHewan === 'keduanya' ? '🐱🐶' : l.jenisHewan === 'kucing' ? '🐱' : '🐶'}
+            {(grooming.layanan || []).length > 0 && (
+              <div className="card" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
+                <h3 style={{ marginBottom: '1rem' }}>✂️ Layanan Tersedia</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {grooming.layanan.map(l => (
+                    <div
+                      key={l.id}
+                      onClick={() => { setSelectedLayanan(l); setShowBooking(true); }}
+                      style={{
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        padding: '1rem',
+                        background: selectedLayanan?.id === l.id ? 'rgba(249,115,22,0.1)' : 'var(--bg-secondary)',
+                        border: `1px solid ${selectedLayanan?.id === l.id ? 'var(--primary)' : 'var(--border)'}`,
+                        borderRadius: 'var(--radius-md)', cursor: 'pointer', transition: 'var(--transition)',
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{l.nama}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                          {l.durasi && `⏱️ ${l.durasi} menit • `}{l.jenisHewan === 'keduanya' ? '🐱🐶' : l.jenisHewan === 'kucing' ? '🐱' : '🐶'}
+                        </div>
+                      </div>
+                      <div style={{ fontWeight: 800, color: 'var(--primary)', fontFamily: 'Outfit', fontSize: '1.1rem' }}>
+                        {formatRupiah(l.harga)}
                       </div>
                     </div>
-                    <div style={{ fontWeight: 800, color: 'var(--primary)', fontFamily: 'Outfit', fontSize: '1.1rem' }}>
-                      {formatRupiah(l.harga)}
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Ulasan */}
             <div className="card" style={{ padding: '1.5rem' }}>
@@ -118,9 +180,9 @@ export default function GroomingDetail() {
                 </div>
               )}
 
-              {ulasan.length === 0 ? (
+              {(!grooming.ulasan || grooming.ulasan.length === 0) ? (
                 <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem 0' }}>Belum ada ulasan</p>
-              ) : ulasan.map(u => (
+              ) : grooming.ulasan.map(u => (
                 <div key={u.id} style={{ padding: '1rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', marginBottom: '0.75rem', border: '1px solid var(--border)' }}>
                   <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '0.5rem' }}>
                     <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${u.nama}`} alt={u.nama} className="avatar avatar-sm" />
@@ -154,7 +216,7 @@ export default function GroomingDetail() {
                     </div>
                   )}
 
-                  {showBooking && selectedLayanan && (
+                  {showBooking && selectedLayanan ? (
                     <div style={{ animation: 'fadeIn 0.3s ease' }}>
                       <div className="form-group" style={{ marginBottom: '0.75rem' }}>
                         <label className="form-label">Nama Hewan</label>
@@ -182,14 +244,12 @@ export default function GroomingDetail() {
                         <label className="form-label">Catatan Khusus</label>
                         <textarea value={booking.catatan} onChange={e => setBooking(b => ({ ...b, catatan: e.target.value }))} className="form-input" placeholder="Contoh: sensitif di bagian telinga..." rows={2} />
                       </div>
-                      <button onClick={handleBook} className="btn btn-primary btn-full" style={{ marginBottom: '0.5rem' }}>
-                        <Check size={16} /> Konfirmasi Booking
+                      <button onClick={handleBook} disabled={bookingLoading} className="btn btn-primary btn-full" style={{ marginBottom: '0.5rem' }}>
+                        <Check size={16} /> {bookingLoading ? 'Menyimpan...' : 'Konfirmasi Booking'}
                       </button>
                       <button onClick={() => { setShowBooking(false); setSelectedLayanan(null); }} className="btn btn-secondary btn-full">Batal</button>
                     </div>
-                  )}
-
-                  {!showBooking && (
+                  ) : (
                     <div>
                       <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
                         👆 Pilih layanan di kiri untuk melanjutkan booking
@@ -202,9 +262,11 @@ export default function GroomingDetail() {
                 </>
               )}
 
-              <div style={{ marginTop: '1rem', padding: '0.75rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                💳 No. Rek: <strong style={{ color: 'var(--text-primary)' }}>{data.noRekening}</strong> ({data.namaBank})
-              </div>
+              {(grooming.noRekening || grooming.namaBank) && (
+                <div style={{ marginTop: '1rem', padding: '0.75rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  💳 No. Rek: <strong style={{ color: 'var(--text-primary)' }}>{grooming.noRekening}</strong> ({grooming.namaBank})
+                </div>
+              )}
             </div>
           </div>
         </div>
