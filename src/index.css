@@ -68,10 +68,21 @@ body {
 }
 
 /* ===== SCROLLBAR ===== */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: var(--bg-secondary); }
-::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 99px; }
-::-webkit-scrollbar-thumb:hover { background: var(--primary-dark); }
+@media (min-width: 992px) {
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg-secondary); }
+  ::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--primary-dark); }
+}
+@media (max-width: 991px) {
+  /* Hilangkan scrollbar kustom oranye di mobile agar tidak menumpuk dan menggunakan scrollbar default OS */
+  ::-webkit-scrollbar {
+    width: 0px !important;
+    height: 0px !important;
+    background: transparent !important;
+    display: none !important;
+  }
+}
 
 /* ===== TYPOGRAPHY ===== */
 h1,h2,h3,h4,h5,h6 { font-family: 'Outfit', sans-serif; font-weight: 700; line-height: 1.2; }
@@ -549,6 +560,35 @@ div:has(> .dashboard-sidebar) {
 @media (max-width: 576px) {
   .navbar-username {
     display: none !important;
+  }
+}
+
+/* Product Detail Modal & Grid responsif */
+.product-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.product-detail-modal-card {
+  width: 100%;
+  max-width: 740px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 2rem;
+  position: relative;
+}
+
+@media (max-width: 576px) {
+  .product-detail-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1.5rem !important;
+  }
+  
+  .product-detail-modal-card {
+    padding: 1.25rem !important;
+    max-height: 95vh !important;
   }
 }
 

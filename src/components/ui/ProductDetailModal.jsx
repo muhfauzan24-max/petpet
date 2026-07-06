@@ -140,7 +140,7 @@ export default function ProductDetailModal({ produkId, onClose }) {
       )}
 
       {/* Modal Card */}
-      <div className="card-glass" style={{ width: '100%', maxWidth: 740, maxHeight: '90vh', overflowY: 'auto', padding: '2rem', position: 'relative' }}>
+      <div className="card-glass product-detail-modal-card">
         
         {/* Close Button */}
         <button onClick={onClose} style={{ position: 'absolute', top: 18, right: 18, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }} title="Tutup Detail">
@@ -148,7 +148,7 @@ export default function ProductDetailModal({ produkId, onClose }) {
         </button>
 
         {/* Top Info Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '2rem', marginBottom: '2rem' }}>
+        <div className="product-detail-grid">
           
           {/* Product Image */}
           <div style={{ display: 'flex', flexDirection: 'column' }}>
