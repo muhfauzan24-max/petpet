@@ -1,17 +1,22 @@
 <?php
 // ============================================================
-// PetPlace API — Clean Demo Data
+// PetPlace API — Temporary Database Cleanup (Self-Destructive)
 // ============================================================
 require_once __DIR__ . '/config.php';
 setCORSHeaders();
+
+// Kunci keamanan rahasia untuk memicu penghapusan
+$secret_key = "clean_petplace_2026_xyz";
+
+if (($_GET['key'] ?? '') !== $secret_key) {
+    sendError('Akses ditolak. Secret key tidak valid.', 403);
+}
 
 try {
     $db = getDB();
     $db->beginTransaction();
 
-    echo "<pre>=== STARTING DATABASE CLEANUP ===\n\n";
-
-    // 1. Dapatkan ID pengguna demo
+    // 1. Daftar email demo yang akan dihapus
     $demoEmails = ['kios1@petplace.id', 'kios2@petplace.id', 'rian@petplace.id', 'sarah@petplace.id', 'grooming1@petplace.id'];
     $placeholders = implode(',', array_fill(0, count($demoEmails), '?'));
     
@@ -20,55 +25,53 @@ try {
     $stmtUsers->execute($demoEmails);
     $demoUserIds = $stmtUsers->fetchAll(PDO::FETCH_COLUMN);
 
+    $logs = [];
     if (!empty($demoUserIds)) {
         $userIdsStr = implode(',', $demoUserIds);
 
         // Hapus ulasan
-        echo "1. Cleaning ulasan...\n";
         $db->exec("DELETE FROM ulasan_produk WHERE id_pengguna IN ($userIdsStr)");
         $db->exec("DELETE FROM ulasan_dokter WHERE id_pengguna IN ($userIdsStr)");
         $db->exec("DELETE FROM ulasan_grooming WHERE id_pengguna IN ($userIdsStr)");
+        $logs[] = "Ulasan demo dibersihkan.";
 
         // Hapus janji dokter & booking grooming yang berelasi dengan demo
-        echo "2. Cleaning janji temu & booking...\n";
         $db->exec("DELETE FROM janji_dokter WHERE id_pengguna IN ($userIdsStr) OR id_dokter IN (SELECT id_dokter FROM dokter_hewan WHERE id_pengguna IN ($userIdsStr))");
         $db->exec("DELETE FROM booking_grooming WHERE id_pengguna IN ($userIdsStr) OR id_grooming IN (SELECT id_grooming FROM penyedia_grooming WHERE id_pengguna IN ($userIdsStr))");
+        $logs[] = "Janji temu & booking demo dibersihkan.";
 
         // Hapus pesanan & pembayaran
-        echo "3. Cleaning pesanan & pembayaran...\n";
         $db->exec("DELETE FROM pembayaran WHERE id_pesanan IN (SELECT id_pesanan FROM pesanan WHERE id_pengguna IN ($userIdsStr) OR id_kios IN (SELECT id_kios FROM kios WHERE id_pengguna IN ($userIdsStr)))");
         $db->exec("DELETE FROM detail_pesanan WHERE id_pesanan IN (SELECT id_pesanan FROM pesanan WHERE id_pengguna IN ($userIdsStr) OR id_kios IN (SELECT id_kios FROM kios WHERE id_pengguna IN ($userIdsStr)))");
         $db->exec("DELETE FROM pesanan WHERE id_pengguna IN ($userIdsStr) OR id_kios IN (SELECT id_kios FROM kios WHERE id_pengguna IN ($userIdsStr))");
+        $logs[] = "Pesanan & pembayaran demo dibersihkan.";
 
         // Hapus chat percakapan & pesan
-        echo "4. Cleaning percakapan & pesan...\n";
         $db->exec("DELETE FROM pesan WHERE id_percakapan IN (SELECT id_percakapan FROM percakapan WHERE id_pengguna IN ($userIdsStr))");
         $db->exec("DELETE FROM percakapan WHERE id_pengguna IN ($userIdsStr)");
+        $logs[] = "Chat percakapan demo dibersihkan.";
 
-        // Hapus pengguna demo (cascading ke kios, produk, dokter, grooming karena ON DELETE CASCADE)
-        echo "5. Deleting demo users (cascading to kiosks, products, doctors, grooming)...\n";
+        // Hapus pengguna demo (cascading ke kios, produk, dokter, grooming)
         $stmtDelUser = $db->prepare("DELETE FROM pengguna WHERE email IN ($placeholders)");
         $stmtDelUser->execute($demoEmails);
-        echo "   Demo users deleted.\n\n";
+        $logs[] = "Pengguna & Mitra demo (Kios, Dokter, Grooming) dibersihkan dari database.";
+    } else {
+        $logs[] = "Tidak ditemukan pengguna demo untuk dibersihkan.";
     }
-
-    // 6. Hapus kategori produk demo (slugs: makanan, aksesoris, kesehatan, mainan, perawatan)
-    echo "6. Deleting demo categories...\n";
-    $demoSlugs = ['makanan', 'aksesoris', 'kesehatan', 'mainan', 'perawatan'];
-    $slugPlaceholders = implode(',', array_fill(0, count($demoSlugs), '?'));
-    $stmtDelCat = $db->prepare("DELETE FROM kategori_produk WHERE slug IN ($slugPlaceholders)");
-    $stmtDelCat->execute($demoSlugs);
-    echo "   Demo categories deleted.\n\n";
 
     $db->commit();
-    echo "=========================================\n";
-    echo "🎉 DATABASE CLEANUP COMPLETED SUCCESSFULLY!\n";
-    echo "=========================================\n";
-    echo "</pre>";
+    
+    // HAPUS DIRI SENDIRI (Self-destructive untuk keamanan maksimal)
+    @unlink(__FILE__);
+    
+    sendSuccess([
+        'logs' => $logs,
+        'self_destroyed' => true
+    ], 'Database berhasil dibersihkan! File pembersih ini telah otomatis menghapus dirinya sendiri dari server.');
 
 } catch (Exception $e) {
-    if (isset($db)) {
+    if (isset($db) && $db->inTransaction()) {
         $db->rollBack();
     }
-    echo "<pre>❌ CLEANUP FAILED: " . $e->getMessage() . "\n" . $e->getTraceAsString() . "</pre>";
+    sendError('Gagal membersihkan database: ' . $e->getMessage(), 500);
 }
