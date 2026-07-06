@@ -202,7 +202,7 @@ export default function Navbar() {
               }}>
                 <img src={user.foto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`}
                   alt={user.nama} className="avatar avatar-sm" />
-                <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                <span className="navbar-username" style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>
                   {user.nama.split(' ')[0]}
                 </span>
                 <ChevronDown size={13} style={{ color: 'var(--text-muted)' }} />

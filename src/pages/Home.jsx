@@ -63,7 +63,7 @@ export default function Home() {
         <div style={{ position: 'absolute', bottom: '10%', left: '5%', width: 300, height: 300, background: 'radial-gradient(circle, rgba(139,92,246,0.1) 0%, transparent 70%)', borderRadius: '50%', animation: 'float 8s ease-in-out infinite reverse' }} />
 
         <div className="container" style={{ position: 'relative', zIndex: 1, paddingTop: '5rem', paddingBottom: '5rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4rem', alignItems: 'center' }}>
+          <div className="hero-grid">
             {/* Left Content */}
             <div style={{ animation: 'fadeIn 0.8s ease' }}>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.2)', borderRadius: 'var(--radius-full)', padding: '0.4rem 1rem', marginBottom: '1.5rem' }}>
@@ -113,17 +113,8 @@ export default function Home() {
             </div>
 
             {/* Right — Hero Visual */}
-            <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', animation: 'fadeIn 1s ease 0.3s both' }}>
-              <div style={{
-                width: 420, height: 420,
-                background: 'linear-gradient(135deg, rgba(249,115,22,0.1), rgba(139,92,246,0.1))',
-                borderRadius: '40% 60% 60% 40% / 40% 40% 60% 60%',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '10rem',
-                border: '2px solid rgba(249,115,22,0.2)',
-                animation: 'float 4s ease-in-out infinite',
-                boxShadow: '0 30px 80px rgba(249,115,22,0.2)',
-              }}>
+            <div className="hero-visual-wrapper" style={{ animation: 'fadeIn 1s ease 0.3s both' }}>
+              <div className="hero-visual-circle">
                 {activeAnimal === 'kucing' ? '🐱' : '🐶'}
               </div>
 
@@ -133,7 +124,7 @@ export default function Home() {
               </button>
 
               {/* Floating cards */}
-              <div style={{ position: 'absolute', top: 30, right: -10, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '0.75rem 1rem', backdropFilter: 'blur(20px)', animation: 'float 5s ease-in-out infinite 1s', boxShadow: 'var(--shadow-md)' }}>
+              <div className="floating-card-rating">
                 <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Rating Tertinggi</div>
                 <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>
                   {topDokter[0]?.nama || 'Dokter Hewan'}
@@ -141,7 +132,7 @@ export default function Home() {
                 <RatingStars rating={topDokter[0]?.rating || 5} size={12} />
               </div>
 
-              <div style={{ position: 'absolute', top: '50%', left: -30, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '0.75rem 1rem', backdropFilter: 'blur(20px)', animation: 'float 5s ease-in-out infinite 2s', boxShadow: 'var(--shadow-md)' }}>
+              <div className="floating-card-transaksi">
                 <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Transaksi Hari Ini</div>
                 <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: '1.5rem', color: 'var(--primary)' }}>
                   {stats.transaksiHariIni}

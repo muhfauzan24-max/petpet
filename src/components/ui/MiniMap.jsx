@@ -236,7 +236,7 @@ export default function MiniMap() {
         </div>
 
         {/* Stats row */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginTop: '1.25rem' }}>
+        <div className="minimap-stats-grid">
           {Object.entries(TIPE_CONFIG).map(([key, cfg]) => (
             <div key={key} className="card" style={{
               padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem',
