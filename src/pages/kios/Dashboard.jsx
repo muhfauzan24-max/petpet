@@ -123,299 +123,6 @@ export default function KiosDashboard() {
     }
   };
 
-  // ─── Komponen Atur Lokasi Kios ────────────────────────────────────────────────
-  function LokasiKiosModal({ kios, onClose, onSaved }) {
-    const [mapReady, setMapReady] = useState(false);
-    const [mapPinned, setMapPinned] = useState(!!(kios?.lat));
-    const [saving, setSaving] = useState(false);
-    const [detectingIP, setDetectingIP] = useState(false);
-    const [locForm, setLocForm] = useState({ lat: kios?.lat || '', lng: kios?.lng || '', alamat: kios?.alamat || '', kota: kios?.kota || 'Makassar' });
-    const lkMapRef = useRef(null);
-    const lkMapInst = useRef(null);
-    const lkMarkerRef = useRef(null);
-
-    useEffect(() => {
-      if (window.L) { setMapReady(true); return; }
-      const css = document.createElement('link');
-      css.rel = 'stylesheet';
-      css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-      document.head.appendChild(css);
-      const js = document.createElement('script');
-      js.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-      js.onload = () => setMapReady(true);
-      document.head.appendChild(js);
-    }, []);
-
-    useEffect(() => {
-      if (!mapReady || !lkMapRef.current || lkMapInst.current) return;
-      const L = window.L;
-      const initLat = parseFloat(kios?.lat) || -5.1477;
-      const initLng = parseFloat(kios?.lng) || 119.4327;
-      const map = L.map(lkMapRef.current, { center: [initLat, initLng], zoom: 14 });
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '\u00a9 OpenStreetMap' }).addTo(map);
-      const pinIcon = L.divIcon({
-        className: '',
-        html: `<div style="width:32px;height:32px;background:#F97316;border:3px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 3px 10px rgba(0,0,0,0.3)">\ud83c\udfea</div>`,
-        iconSize: [32, 32], iconAnchor: [16, 16],
-      });
-      if (kios?.lat && kios?.lng) {
-        lkMarkerRef.current = L.marker([initLat, initLng], { icon: pinIcon }).addTo(map).bindPopup('<strong>Lokasi Kios Anda</strong>').openPopup();
-      }
-      map.on('click', (e) => {
-        const { lat, lng } = e.latlng;
-        if (lkMarkerRef.current) lkMarkerRef.current.setLatLng([lat, lng]);
-        else {
-          lkMarkerRef.current = L.marker([lat, lng], { icon: pinIcon }).addTo(map).bindPopup('<strong>Lokasi Kios Anda</strong>').openPopup();
-        }
-        setLocForm(f => ({ ...f, lat: lat.toFixed(6), lng: lng.toFixed(6) }));
-        setMapPinned(true);
-      });
-      lkMapInst.current = map;
-      return () => { if (lkMapInst.current) { lkMapInst.current.remove(); lkMapInst.current = null; lkMarkerRef.current = null; } };
-    }, [mapReady]);
-
-    // Deteksi lokasi via IP
-    const handleDetectIP = async () => {
-      setDetectingIP(true);
-      try {
-        const res = await fetch('https://ipapi.co/json/');
-        const data = await res.json();
-        if (data.latitude && data.longitude) {
-          const lat = parseFloat(data.latitude);
-          const lng = parseFloat(data.longitude);
-          const kota = data.city || data.region || 'Makassar';
-          setLocForm(f => ({ ...f, kota, lat: lat.toFixed(6), lng: lng.toFixed(6) }));
-          if (lkMapInst.current) {
-            const L = window.L;
-            lkMapInst.current.setView([lat, lng], 15);
-            const pinIcon = L.divIcon({
-              className: '',
-              html: `<div style="width:32px;height:32px;background:#F97316;border:3px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 3px 10px rgba(0,0,0,0.3)">\ud83c\udfea</div>`,
-              iconSize: [32, 32], iconAnchor: [16, 16],
-            });
-            if (lkMarkerRef.current) lkMarkerRef.current.setLatLng([lat, lng]);
-            else {
-              lkMarkerRef.current = L.marker([lat, lng], { icon: pinIcon })
-                .addTo(lkMapInst.current)
-                .bindPopup(`<strong>\ud83d\udccd Lokasi Anda (${kota})</strong><br/><small>Klik peta untuk sesuaikan</small>`)
-                .openPopup();
-            }
-            setMapPinned(true);
-          }
-        } else {
-          alert('Tidak dapat mendeteksi lokasi dari IP. Silakan klik langsung pada peta.');
-        }
-      } catch (err) {
-        alert('Gagal mendeteksi lokasi: ' + (err.message || 'Cek koneksi'));
-      }
-      setDetectingIP(false);
-    };
-
-    // Gerakkan peta ke koordinat hasil geocoding dari AlamatAutocomplete
-    const handleGeocode = ({ lat, lng, displayName }) => {
-      setLocForm(f => ({ ...f, lat: lat.toFixed(6), lng: lng.toFixed(6) }));
-      if (lkMapInst.current) {
-        const L = window.L;
-        lkMapInst.current.setView([lat, lng], 16);
-        const pinIcon = L.divIcon({
-          className: '',
-          html: `<div style="width:32px;height:32px;background:#F97316;border:3px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 3px 10px rgba(0,0,0,0.3)">\ud83c\udfea</div>`,
-          iconSize: [32, 32], iconAnchor: [16, 16],
-        });
-        const shortName = displayName?.split(',').slice(0, 3).join(',') || 'Lokasi Kios';
-        if (lkMarkerRef.current) {
-          lkMarkerRef.current.setLatLng([lat, lng]);
-          lkMarkerRef.current.setPopupContent(`<strong>\ud83d\udccd ${shortName}</strong><br/><small>Klik peta untuk sesuaikan titik</small>`);
-          lkMarkerRef.current.openPopup();
-        } else {
-          lkMarkerRef.current = L.marker([lat, lng], { icon: pinIcon })
-            .addTo(lkMapInst.current)
-            .bindPopup(`<strong>\ud83d\udccd ${shortName}</strong><br/><small>Klik peta untuk sesuaikan titik</small>`)
-            .openPopup();
-        }
-        setMapPinned(true);
-      }
-    };
-
-    const handleSave = async () => {
-      if (!locForm.lat || !locForm.lng) { alert('Klik pada peta untuk menentukan lokasi!'); return; }
-      setSaving(true);
-      try {
-        await kiosAPI.update(kios.id, locForm);
-        onSaved({ ...locForm });
-        onClose();
-      } catch (err) { alert(err.message || 'Gagal menyimpan lokasi'); }
-      setSaving(false);
-    };
-
-    return (
-      <div style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
-           onClick={e => e.target === e.currentTarget && onClose()}>
-        <div className="card" style={{ width: '100%', maxWidth: 580, maxHeight: '90vh', overflowY: 'auto', padding: '1.75rem', position: 'relative' }}>
-          <button onClick={onClose} style={{ position: 'absolute', top: 14, right: 14, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '1.2rem' }}>✕</button>
-          <h3 style={{ marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><MapPin size={18} style={{ color: 'var(--primary)' }} /> Atur Lokasi Kios</h3>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', marginBottom: '1.25rem' }}>Klik pada peta untuk menentukan koordinat kios. Koordinat ini digunakan pembeli untuk melacak pesanan secara real-time.</p>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
-            {/* Alamat dengan autocomplete */}
-            <div className="form-group" style={{ gridColumn: '1/-1' }}>
-              <label className="form-label">Alamat Lengkap</label>
-              <AlamatAutocomplete
-                value={locForm.alamat}
-                onChange={val => setLocForm(f => ({ ...f, alamat: val }))}
-                onGeocode={handleGeocode}
-                kota={locForm.kota}
-                placeholder="Cari nama jalan atau daerah..."
-              />
-            </div>
-            {/* Kota dropdown */}
-            <div className="form-group">
-              <label className="form-label">Kota</label>
-              <select
-                value={locForm.kota}
-                onChange={e => setLocForm(f => ({ ...f, kota: e.target.value }))}
-                className="form-input"
-                style={{ cursor: 'pointer' }}
-              >
-                <option value="">-- Pilih Kota --</option>
-                {DAFTAR_KOTA.map(k => <option key={k} value={k}>{k}</option>)}
-              </select>
-            </div>
-            <div className="form-group">
-              <label className="form-label">Koordinat (otomatis)</label>
-              <div style={{ display: 'flex', gap: '0.4rem' }}>
-                <input readOnly value={locForm.lat} className="form-input" placeholder="Lat" style={{ flex: 1, fontFamily: 'monospace', fontSize: '0.75rem', color: locForm.lat ? 'var(--primary)' : undefined }} />
-                <input readOnly value={locForm.lng} className="form-input" placeholder="Lng" style={{ flex: 1, fontFamily: 'monospace', fontSize: '0.75rem', color: locForm.lng ? 'var(--primary)' : undefined }} />
-              </div>
-            </div>
-          </div>
-
-          {/* Tombol Deteksi IP */}
-          <div style={{ marginBottom: '0.875rem', display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              onClick={handleDetectIP}
-              disabled={detectingIP}
-              className="btn btn-secondary btn-sm"
-              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-            >
-              {detectingIP
-                ? <><Loader size={13} style={{ animation: 'spin 1s linear infinite' }} /> Mendeteksi...</>
-                : <><Crosshair size={13} /> Deteksi Lokasi dari IP</>}
-            </button>
-            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>atau klik langsung pada peta</span>
-          </div>
-
-          <div style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', border: `2px solid ${mapPinned ? 'var(--primary)' : 'var(--border)'}`, transition: 'border-color 0.3s', marginBottom: '1rem' }}>
-            <div ref={lkMapRef} style={{ height: 240, width: '100%', background: 'var(--bg-secondary)' }} />
-            {mapReady && !mapPinned && (
-              <div style={{ position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)', background: 'rgba(0,0,0,0.75)', color: 'white', padding: '0.35rem 0.8rem', borderRadius: 99, fontSize: '0.72rem', pointerEvents: 'none', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                <Navigation size={11} /> Klik peta untuk menentukan lokasi
-              </div>
-            )}
-            {mapPinned && (
-              <div style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(16,185,129,0.9)', color: 'white', padding: '0.25rem 0.6rem', borderRadius: 99, fontSize: '0.7rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                <CheckCircle size={11} /> Lokasi ditandai
-              </div>
-            )}
-          </div>
-
-          <div style={{ display: 'flex', gap: '0.75rem' }}>
-            <button onClick={handleSave} disabled={saving || !mapPinned} className="btn btn-primary" style={{ flex: 1 }}>
-              {saving ? '\u23f3 Menyimpan...' : <><CheckCircle size={15} /> Simpan Lokasi</>}
-            </button>
-            <button onClick={onClose} className="btn btn-secondary">Batal</button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ─── Modal Pengaturan Kios (QRIS & Bank) ──────────────────────────────────────
-  function PengaturanKiosModal({ onClose }) {
-    const [form, setForm] = useState({
-      namaBank: kiosSettings.namaBank,
-      noRekening: kiosSettings.noRekening,
-      namaPemilikRek: kiosSettings.namaPemilikRek,
-      qris: kiosSettings.qris,
-    });
-    const [saving, setSaving] = useState(false);
-
-    const handleUploadQRIS = (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      if (file.size > 2 * 1024 * 1024) {
-        alert('Ukuran foto maksimal adalah 2MB');
-        return;
-      }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setForm(f => ({ ...f, qris: reader.result }));
-      };
-      reader.readAsDataURL(file);
-    };
-
-    const handleSave = async (e) => {
-      e.preventDefault();
-      if (!form.namaBank || !form.noRekening || !form.namaPemilikRek) {
-        alert('Informasi Bank wajib diisi!');
-        return;
-      }
-      setSaving(true);
-      try {
-        await kiosAPI.update(idKios, form);
-        setKiosSettings(form);
-        showToast('success', '✅ Pengaturan pembayaran kios berhasil diperbarui!');
-        onClose();
-      } catch (err) {
-        alert(err.message || 'Gagal menyimpan pengaturan');
-      } finally {
-        setSaving(false);
-      }
-    };
-
-    return (
-      <div style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
-           onClick={e => e.target === e.currentTarget && onClose()}>
-        <div className="card" style={{ width: '100%', maxWidth: 500, maxHeight: '90vh', overflowY: 'auto', padding: '1.75rem', position: 'relative' }}>
-          <button onClick={onClose} style={{ position: 'absolute', top: 14, right: 14, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '1.2rem' }}>✕</button>
-          <h3 style={{ marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>💳 Pengaturan QRIS & Rekening</h3>
-          
-          <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div className="form-group">
-              <label className="form-label">Nama Bank</label>
-              <input required value={form.namaBank} onChange={e => setForm(f => ({ ...f, namaBank: e.target.value }))} className="form-input" placeholder="Contoh: BCA, Mandiri, BRI" />
-            </div>
-            <div className="form-group">
-              <label className="form-label">No. Rekening</label>
-              <input required value={form.noRekening} onChange={e => setForm(f => ({ ...f, noRekening: e.target.value }))} className="form-input" placeholder="Contoh: 12345678" />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Nama Pemilik Rekening</label>
-              <input required value={form.namaPemilikRek} onChange={e => setForm(f => ({ ...f, namaPemilikRek: e.target.value }))} className="form-input" placeholder="Nama sesuai buku tabungan" />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Upload QRIS Baru (Optional)</label>
-              <input type="file" accept="image/*" onChange={handleUploadQRIS} className="form-input" style={{ cursor: 'pointer' }} />
-              {form.qris && (
-                <div style={{ marginTop: '0.5rem', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border)', maxWidth: 200, maxHeight: 200, display: 'flex', justifyContent: 'center' }}>
-                  <img src={getImageUrl(form.qris)} alt="QRIS Preview" style={{ width: '100%', height: 'auto', objectFit: 'contain' }} />
-                </div>
-              )}
-            </div>
-
-            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-              <button type="submit" disabled={saving} className="btn btn-primary" style={{ flex: 1 }}>
-                {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
-              </button>
-              <button type="button" onClick={onClose} className="btn btn-secondary">Batal</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    );
-  }
-
   const getSidebarLinks = () => [
     { href: "/kios",          icon: "🏠", label: "Dashboard" },
     { href: "/kios/produk",   icon: "📦", label: "Produk" },
@@ -904,10 +611,306 @@ export default function KiosDashboard() {
     {showSettingsModal && (
       <PengaturanKiosModal
         onClose={() => setShowSettingsModal(false)}
+        idKios={idKios}
+        kiosSettings={kiosSettings}
+        setKiosSettings={setKiosSettings}
+        showToast={showToast}
       />
     )}
 
     <NotifikasiKiosAlert />
     </>
+  );
+}
+
+// ─── Komponen Atur Lokasi Kios (Root-level) ────────────────────────────────────────────────
+function LokasiKiosModal({ kios, onClose, onSaved }) {
+  const [mapReady, setMapReady] = useState(false);
+  const [mapPinned, setMapPinned] = useState(!!(kios?.lat));
+  const [saving, setSaving] = useState(false);
+  const [detectingIP, setDetectingIP] = useState(false);
+  const [locForm, setLocForm] = useState({ lat: kios?.lat || '', lng: kios?.lng || '', alamat: kios?.alamat || '', kota: kios?.kota || 'Makassar' });
+  const lkMapRef = useRef(null);
+  const lkMapInst = useRef(null);
+  const lkMarkerRef = useRef(null);
+
+  useEffect(() => {
+    if (window.L) { setMapReady(true); return; }
+    const css = document.createElement('link');
+    css.rel = 'stylesheet';
+    css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(css);
+    const js = document.createElement('script');
+    js.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    js.onload = () => setMapReady(true);
+    document.head.appendChild(js);
+  }, []);
+
+  useEffect(() => {
+    if (!mapReady || !lkMapRef.current || lkMapInst.current) return;
+    const L = window.L;
+    const initLat = parseFloat(kios?.lat) || -5.1477;
+    const initLng = parseFloat(kios?.lng) || 119.4327;
+    const map = L.map(lkMapRef.current, { center: [initLat, initLng], zoom: 14 });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+
+    const pinIcon = L.divIcon({
+      className: '',
+      html: `<div style="width:32px;height:32px;background:#F97316;border:3px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 3px 10px rgba(0,0,0,0.3)">🏪</div>`,
+      iconSize: [32, 32], iconAnchor: [16, 16],
+    });
+
+    if (kios?.lat && kios?.lng) {
+      lkMarkerRef.current = L.marker([initLat, initLng], { icon: pinIcon }).addTo(map).bindPopup('<strong>Lokasi Kios Anda</strong>').openPopup();
+    }
+
+    map.on('click', (e) => {
+      const { lat, lng } = e.latlng;
+      if (lkMarkerRef.current) lkMarkerRef.current.setLatLng([lat, lng]);
+      else {
+        lkMarkerRef.current = L.marker([lat, lng], { icon: pinIcon }).addTo(map).bindPopup('<strong>Lokasi Kios Anda</strong>').openPopup();
+      }
+      setLocForm(f => ({ ...f, lat: lat.toFixed(6), lng: lng.toFixed(6) }));
+      setMapPinned(true);
+    });
+
+    lkMapInst.current = map;
+    return () => { if (lkMapInst.current) { lkMapInst.current.remove(); lkMapInst.current = null; lkMarkerRef.current = null; } };
+  }, [mapReady]);
+
+  const handleDetectIP = async () => {
+    setDetectingIP(true);
+    try {
+      const res = await fetch('https://ipapi.co/json/');
+      const data = await res.json();
+      if (data.latitude && data.longitude) {
+        const lat = parseFloat(data.latitude);
+        const lng = parseFloat(data.longitude);
+        const kota = data.city || data.region || 'Makassar';
+        setLocForm(f => ({ ...f, kota, lat: lat.toFixed(6), lng: lng.toFixed(6) }));
+        if (lkMapInst.current) {
+          const L = window.L;
+          lkMapInst.current.setView([lat, lng], 15);
+          const pinIcon = L.divIcon({
+            className: '',
+            html: `<div style="width:32px;height:32px;background:#F97316;border:3px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 3px 10px rgba(0,0,0,0.3)">🏪</div>`,
+            iconSize: [32, 32], iconAnchor: [16, 16],
+          });
+          if (lkMarkerRef.current) lkMarkerRef.current.setLatLng([lat, lng]);
+          else {
+            lkMarkerRef.current = L.marker([lat, lng], { icon: pinIcon })
+              .addTo(lkMapInst.current)
+              .bindPopup(`<strong>📍 Lokasi Anda (${kota})</strong><br/><small>Klik peta untuk sesuaikan</small>`)
+              .openPopup();
+          }
+          setMapPinned(true);
+        }
+      } else {
+        alert('Tidak dapat mendeteksi lokasi dari IP. Silakan klik langsung pada peta.');
+      }
+    } catch (err) {
+      alert('Gagal mendeteksi lokasi: ' + (err.message || 'Cek koneksi'));
+    }
+    setDetectingIP(false);
+  };
+
+  const handleGeocode = ({ lat, lng, displayName }) => {
+    setLocForm(f => ({ ...f, lat: lat.toFixed(6), lng: lng.toFixed(6) }));
+    if (lkMapInst.current) {
+      const L = window.L;
+      lkMapInst.current.setView([lat, lng], 16);
+      const pinIcon = L.divIcon({
+        className: '',
+        html: `<div style="width:32px;height:32px;background:#F97316;border:3px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 3px 10px rgba(0,0,0,0.3)">🏪</div>`,
+        iconSize: [32, 32], iconAnchor: [16, 16],
+      });
+      const shortName = displayName?.split(',').slice(0, 3).join(',') || 'Lokasi Kios';
+      if (lkMarkerRef.current) {
+        lkMarkerRef.current.setLatLng([lat, lng]);
+        lkMarkerRef.current.setPopupContent(`<strong>📍 ${shortName}</strong><br/><small>Klik peta untuk sesuaikan titik</small>`);
+        lkMarkerRef.current.openPopup();
+      } else {
+        lkMarkerRef.current = L.marker([lat, lng], { icon: pinIcon })
+          .addTo(lkMapInst.current)
+          .bindPopup(`<strong>📍 ${shortName}</strong><br/><small>Klik peta untuk sesuaikan titik</small>`)
+          .openPopup();
+      }
+      setMapPinned(true);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!locForm.lat || !locForm.lng) { alert('Klik pada peta untuk menentukan lokasi!'); return; }
+    setSaving(true);
+    try {
+      await kiosAPI.update(kios.id, locForm);
+      onSaved({ ...locForm });
+      onClose();
+    } catch (err) { alert(err.message || 'Gagal menyimpan lokasi'); }
+    setSaving(false);
+  };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
+         onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="card" style={{ width: '100%', maxWidth: 580, maxHeight: '90vh', overflowY: 'auto', padding: '1.75rem', position: 'relative' }}>
+        <button onClick={onClose} style={{ position: 'absolute', top: 14, right: 14, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '1.2rem' }}>✕</button>
+        <h3 style={{ marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><MapPin size={18} style={{ color: 'var(--primary)' }} /> Atur Lokasi Kios</h3>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', marginBottom: '1.25rem' }}>Klik pada peta untuk menentukan koordinat kios. Koordinat ini digunakan pembeli untuk melacak pesanan secara real-time.</p>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+          <div className="form-group" style={{ gridColumn: '1/-1' }}>
+            <label className="form-label">Alamat Lengkap</label>
+            <AlamatAutocomplete
+              value={locForm.alamat}
+              onChange={val => setLocForm(f => ({ ...f, alamat: val }))}
+              onGeocode={handleGeocode}
+              kota={locForm.kota}
+              placeholder="Cari nama jalan atau daerah..."
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Kota</label>
+            <select
+              value={locForm.kota}
+              onChange={e => setLocForm(f => ({ ...f, kota: e.target.value }))}
+              className="form-input"
+              style={{ cursor: 'pointer' }}
+            >
+              <option value="">-- Pilih Kota --</option>
+              {DAFTAR_KOTA.map(k => <option key={k} value={k}>{k}</option>)}
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Koordinat (otomatis)</label>
+            <div style={{ display: 'flex', gap: '0.4rem' }}>
+              <input readOnly value={locForm.lat} className="form-input" placeholder="Lat" style={{ flex: 1, fontFamily: 'monospace', fontSize: '0.75rem', color: locForm.lat ? 'var(--primary)' : undefined }} />
+              <input readOnly value={locForm.lng} className="form-input" placeholder="Lng" style={{ flex: 1, fontFamily: 'monospace', fontSize: '0.75rem', color: locForm.lng ? 'var(--primary)' : undefined }} />
+            </div>
+          </div>
+        </div>
+
+        <div style={{ marginBottom: '0.875rem', display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={handleDetectIP}
+            disabled={detectingIP}
+            className="btn btn-secondary btn-sm"
+            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+          >
+            {detectingIP
+              ? <><Loader size={13} style={{ animation: 'spin 1s linear infinite' }} /> Mendeteksi...</>
+              : <><Crosshair size={13} /> Deteksi Lokasi dari IP</>}
+          </button>
+          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>atau klik langsung pada peta</span>
+        </div>
+
+        <div style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', border: `2px solid ${mapPinned ? 'var(--primary)' : 'var(--border)'}`, transition: 'border-color 0.3s', marginBottom: '1rem' }}>
+          <div ref={lkMapRef} style={{ height: 240, width: '100%', background: 'var(--bg-secondary)' }} />
+          {mapReady && !mapPinned && (
+            <div style={{ position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)', background: 'rgba(0,0,0,0.75)', color: 'white', padding: '0.35rem 0.8rem', borderRadius: 99, fontSize: '0.72rem', pointerEvents: 'none', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <Navigation size={11} /> Klik peta untuk menentukan lokasi
+            </div>
+          )}
+          {mapPinned && (
+            <div style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(16,185,129,0.9)', color: 'white', padding: '0.25rem 0.6rem', borderRadius: 99, fontSize: '0.7rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+              <CheckCircle size={11} /> Lokasi ditandai
+            </div>
+          )}
+        </div>
+
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <button onClick={handleSave} disabled={saving || !mapPinned} className="btn btn-primary" style={{ flex: 1 }}>
+            {saving ? '⏳ Menyimpan...' : <><CheckCircle size={15} /> Simpan Lokasi</>}
+          </button>
+          <button onClick={onClose} className="btn btn-secondary">Batal</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Modal Pengaturan Kios (QRIS & Bank) (Root-level) ──────────────────────────────────────
+function PengaturanKiosModal({ onClose, idKios, kiosSettings, setKiosSettings, showToast }) {
+  const [form, setForm] = useState({
+    namaBank: kiosSettings.namaBank,
+    noRekening: kiosSettings.noRekening,
+    namaPemilikRek: kiosSettings.namaPemilikRek,
+    qris: kiosSettings.qris,
+  });
+  const [saving, setSaving] = useState(false);
+
+  const handleUploadQRIS = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Ukuran foto maksimal adalah 2MB');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setForm(f => ({ ...f, qris: reader.result }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    if (!form.namaBank || !form.noRekening || !form.namaPemilikRek) {
+      alert('Informasi Bank wajib diisi!');
+      return;
+    }
+    setSaving(true);
+    try {
+      await kiosAPI.update(idKios, form);
+      setKiosSettings(form);
+      showToast('success', '✅ Pengaturan pembayaran kios berhasil diperbarui!');
+      onClose();
+    } catch (err) {
+      alert(err.message || 'Gagal menyimpan pengaturan');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
+         onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="card" style={{ width: '100%', maxWidth: 500, maxHeight: '90vh', overflowY: 'auto', padding: '1.75rem', position: 'relative' }}>
+        <button onClick={onClose} style={{ position: 'absolute', top: 14, right: 14, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '1.2rem' }}>✕</button>
+        <h3 style={{ marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>💳 Pengaturan QRIS & Rekening</h3>
+        
+        <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div className="form-group">
+            <label className="form-label">Nama Bank</label>
+            <input required value={form.namaBank} onChange={e => setForm(f => ({ ...f, namaBank: e.target.value }))} className="form-input" placeholder="Contoh: BCA, Mandiri, BRI" />
+          </div>
+          <div className="form-group">
+            <label className="form-label">No. Rekening</label>
+            <input required value={form.noRekening} onChange={e => setForm(f => ({ ...f, noRekening: e.target.value }))} className="form-input" placeholder="Contoh: 12345678" />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Nama Pemilik Rekening</label>
+            <input required value={form.namaPemilikRek} onChange={e => setForm(f => ({ ...f, namaPemilikRek: e.target.value }))} className="form-input" placeholder="Nama sesuai buku tabungan" />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Upload QRIS Baru (Optional)</label>
+            <input type="file" accept="image/*" onChange={handleUploadQRIS} className="form-input" style={{ cursor: 'pointer' }} />
+            {form.qris && (
+              <div style={{ marginTop: '0.5rem', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border)', maxWidth: 200, maxHeight: 200, display: 'flex', justifyContent: 'center' }}>
+                <img src={getImageUrl(form.qris)} alt="QRIS Preview" style={{ width: '100%', height: 'auto', objectFit: 'contain' }} />
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+            <button type="submit" disabled={saving} className="btn btn-primary" style={{ flex: 1 }}>
+              {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
+            </button>
+            <button type="button" onClick={onClose} className="btn btn-secondary">Batal</button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }

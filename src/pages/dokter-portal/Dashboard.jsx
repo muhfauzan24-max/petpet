@@ -127,94 +127,98 @@ export default function DokterPortalDashboard() {
       {showSettingsModal && (
         <PengaturanDokterModal
           onClose={() => setShowSettingsModal(false)}
+          idDokter={idDokter}
+          dokterSettings={dokterSettings}
+          setDokterSettings={setDokterSettings}
+          loadData={loadData}
         />
       )}
     </div>
   );
+}
 
-  // ─── Modal Pengaturan Dokter (QRIS & Bank) ──────────────────────────────────────
-  function PengaturanDokterModal({ onClose }) {
-    const [form, setForm] = useState({
-      namaBank: dokterSettings.namaBank,
-      noRekening: dokterSettings.noRekening,
-      namaPemilikRek: dokterSettings.namaPemilikRek,
-      qris: dokterSettings.qris,
-    });
-    const [saving, setSaving] = useState(false);
+// ─── Modal Pengaturan Dokter (QRIS & Bank) (Root-level) ──────────────────────────────────────
+function PengaturanDokterModal({ onClose, idDokter, dokterSettings, setDokterSettings, loadData }) {
+  const [form, setForm] = useState({
+    namaBank: dokterSettings.namaBank,
+    noRekening: dokterSettings.noRekening,
+    namaPemilikRek: dokterSettings.namaPemilikRek,
+    qris: dokterSettings.qris,
+  });
+  const [saving, setSaving] = useState(false);
 
-    const handleUploadQRIS = (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      if (file.size > 2 * 1024 * 1024) {
-        alert('Ukuran foto maksimal adalah 2MB');
-        return;
-      }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setForm(f => ({ ...f, qris: reader.result }));
-      };
-      reader.readAsDataURL(file);
+  const handleUploadQRIS = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Ukuran foto maksimal adalah 2MB');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setForm(f => ({ ...f, qris: reader.result }));
     };
+    reader.readAsDataURL(file);
+  };
 
-    const handleSave = async (e) => {
-      e.preventDefault();
-      if (!form.namaBank || !form.noRekening || !form.namaPemilikRek) {
-        alert('Informasi Bank wajib diisi!');
-        return;
-      }
-      setSaving(true);
-      try {
-        await dokterAPI.update(idDokter, form);
-        setDokterSettings(form);
-        alert('Pengaturan pembayaran dokter berhasil diperbarui!');
-        onClose();
-        loadData();
-      } catch (err) {
-        alert(err.message || 'Gagal menyimpan pengaturan');
-      } finally {
-        setSaving(false);
-      }
-    };
+  const handleSave = async (e) => {
+    e.preventDefault();
+    if (!form.namaBank || !form.noRekening || !form.namaPemilikRek) {
+      alert('Informasi Bank wajib diisi!');
+      return;
+    }
+    setSaving(true);
+    try {
+      await dokterAPI.update(idDokter, form);
+      setDokterSettings(form);
+      alert('Pengaturan pembayaran dokter berhasil diperbarui!');
+      onClose();
+      loadData();
+    } catch (err) {
+      alert(err.message || 'Gagal menyimpan pengaturan');
+    } finally {
+      setSaving(false);
+    }
+  };
 
-    return (
-      <div style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
-           onClick={e => e.target === e.currentTarget && onClose()}>
-        <div className="card" style={{ width: '100%', maxWidth: 500, maxHeight: '90vh', overflowY: 'auto', padding: '1.75rem', position: 'relative' }}>
-          <button onClick={onClose} style={{ position: 'absolute', top: 14, right: 14, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '1.2rem' }}>✕</button>
-          <h3 style={{ marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>💳 Pengaturan QRIS & Rekening</h3>
-          
-          <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div className="form-group">
-              <label className="form-label">Nama Bank</label>
-              <input required value={form.namaBank} onChange={e => setForm(f => ({ ...f, namaBank: e.target.value }))} className="form-input" placeholder="Contoh: BCA, Mandiri, BRI" />
-            </div>
-            <div className="form-group">
-              <label className="form-label">No. Rekening</label>
-              <input required value={form.noRekening} onChange={e => setForm(f => ({ ...f, noRekening: e.target.value }))} className="form-input" placeholder="Contoh: 12345678" />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Nama Pemilik Rekening</label>
-              <input required value={form.namaPemilikRek} onChange={e => setForm(f => ({ ...f, namaPemilikRek: e.target.value }))} className="form-input" placeholder="Nama sesuai buku tabungan" />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Upload QRIS Baru (Optional)</label>
-              <input type="file" accept="image/*" onChange={handleUploadQRIS} className="form-input" style={{ cursor: 'pointer' }} />
-              {form.qris && (
-                <div style={{ marginTop: '0.5rem', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border)', maxWidth: 200, maxHeight: 200, display: 'flex', justifyContent: 'center' }}>
-                  <img src={getImageUrl(form.qris)} alt="QRIS Preview" style={{ width: '100%', height: 'auto', objectFit: 'contain' }} />
-                </div>
-              )}
-            </div>
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
+         onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="card" style={{ width: '100%', maxWidth: 500, maxHeight: '90vh', overflowY: 'auto', padding: '1.75rem', position: 'relative' }}>
+        <button onClick={onClose} style={{ position: 'absolute', top: 14, right: 14, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '1.2rem' }}>✕</button>
+        <h3 style={{ marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>💳 Pengaturan QRIS & Rekening</h3>
+        
+        <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div className="form-group">
+            <label className="form-label">Nama Bank</label>
+            <input required value={form.namaBank} onChange={e => setForm(f => ({ ...f, namaBank: e.target.value }))} className="form-input" placeholder="Contoh: BCA, Mandiri, BRI" />
+          </div>
+          <div className="form-group">
+            <label className="form-label">No. Rekening</label>
+            <input required value={form.noRekening} onChange={e => setForm(f => ({ ...f, noRekening: e.target.value }))} className="form-input" placeholder="Contoh: 12345678" />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Nama Pemilik Rekening</label>
+            <input required value={form.namaPemilikRek} onChange={e => setForm(f => ({ ...f, namaPemilikRek: e.target.value }))} className="form-input" placeholder="Nama sesuai buku tabungan" />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Upload QRIS Baru (Optional)</label>
+            <input type="file" accept="image/*" onChange={handleUploadQRIS} className="form-input" style={{ cursor: 'pointer' }} />
+            {form.qris && (
+              <div style={{ marginTop: '0.5rem', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border)', maxWidth: 200, maxHeight: 200, display: 'flex', justifyContent: 'center' }}>
+                <img src={getImageUrl(form.qris)} alt="QRIS Preview" style={{ width: '100%', height: 'auto', objectFit: 'contain' }} />
+              </div>
+            )}
+          </div>
 
-            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-              <button type="submit" disabled={saving} className="btn btn-primary" style={{ flex: 1 }}>
-                {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
-              </button>
-              <button type="button" onClick={onClose} className="btn btn-secondary">Batal</button>
-            </div>
-          </form>
-        </div>
+          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+            <button type="submit" disabled={saving} className="btn btn-primary" style={{ flex: 1 }}>
+              {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
+            </button>
+            <button type="button" onClick={onClose} className="btn btn-secondary">Batal</button>
+          </div>
+        </form>
       </div>
-    );
-  }
+    </div>
+  );
 }
