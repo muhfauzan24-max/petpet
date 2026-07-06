@@ -282,12 +282,14 @@ function handleUpdateProfile(): void {
         $uploadDir = __DIR__ . '/../uploads/';
         
         if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0755, true);
+            if (!@mkdir($uploadDir, 0755, true)) {
+                sendError('Gagal membuat direktori upload di server. Silakan hubungi admin atau periksa izin folder uploads di server.');
+            }
         }
         
         $filePath = $uploadDir . $filename;
-        if (file_put_contents($filePath, $decoded) === false) {
-            sendError('Gagal menyimpan file gambar ke server');
+        if (!@file_put_contents($filePath, $decoded)) {
+            sendError('Gagal menyimpan file gambar profil ke server. Silakan hubungi admin atau periksa izin folder uploads di server.');
         }
         
         $dbPath = '/uploads/' . $filename;

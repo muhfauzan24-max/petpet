@@ -68,9 +68,9 @@ function addHewan(): void {
                 $filename = 'pet_' . $user['id_pengguna'] . '_' . time() . '.' . $ext;
                 $uploadDir = __DIR__ . '/../uploads/';
                 if (!is_dir($uploadDir)) {
-                    mkdir($uploadDir, 0755, true);
+                    @mkdir($uploadDir, 0755, true);
                 }
-                if (file_put_contents($uploadDir . $filename, $decoded) !== false) {
+                if (@file_put_contents($uploadDir . $filename, $decoded) !== false) {
                     $dbPath = '/uploads/' . $filename;
                 }
             }

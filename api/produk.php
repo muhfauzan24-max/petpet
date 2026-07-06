@@ -184,9 +184,15 @@ function createProduk(): void {
             $extStr  = strtolower($ext[1] ?? 'jpg');
             if ($extStr === 'jpeg') $extStr = 'jpg';
             $dir     = __DIR__ . '/../uploads/produk/';
-            if (!is_dir($dir)) mkdir($dir, 0775, true);
+            if (!is_dir($dir)) {
+                if (!@mkdir($dir, 0775, true)) {
+                    sendError('Gagal membuat direktori produk di server. Periksa izin folder uploads.');
+                }
+            }
             $fname   = 'produk_' . time() . '_' . uniqid() . '.' . $extStr;
-            file_put_contents($dir . $fname, $imgData);
+            if (!@file_put_contents($dir . $fname, $imgData)) {
+                sendError('Gagal menulis file gambar produk di server. Periksa izin folder uploads.');
+            }
             // URL yang bisa diakses browser
             $foto = '/uploads/produk/' . $fname;
         } else {
