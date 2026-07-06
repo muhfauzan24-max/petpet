@@ -1,8 +1,8 @@
 # Aturan Wajib untuk Antigravity — Proyek PetPlace
 
 Dokumen ini berisi aturan yang WAJIB diikuti terkait deployment proyek ini.
-Pelanggaran aturan ini sudah pernah menyebabkan 22 commit macet dan
-CI/CD gagal total selama beberapa hari. Jangan diulang.
+Pelanggaran aturan ini sudah pernah menyebabkan 22 commit macet, CI/CD
+gagal total, DAN 2 insiden keamanan data nyata. Jangan diulang.
 
 ---
 
@@ -12,9 +12,8 @@ CI/CD gagal total selama beberapa hari. Jangan diulang.
 diedit langsung di server (lewat SSH) untuk keperluan debugging/fix cepat,
 tapi TIDAK PERNAH di-commit ke Git. Akibatnya, setiap `git pull` berikutnya
 di CI/CD GAGAL karena Git menolak menimpa perubahan lokal yang belum
-di-commit. Ini membuat 22 commit fix (termasuk fix bug penting) macet
-tidak pernah sampai ke production selama berhari-hari, walau kelihatannya
-sudah "di-push ke GitHub".
+di-commit. Ini membuat 22 commit fix macet tidak pernah sampai ke
+production selama berhari-hari, walau kelihatannya sudah "di-push ke GitHub".
 
 **Aturan:**
 - Kalau kamu (Antigravity) SSH ke VPS dan mengedit file apapun secara manual,
@@ -25,57 +24,42 @@ sudah "di-push ke GitHub".
   git commit -m "deskripsi perubahan"
   git push origin main
 ```
-- Sebelum edit manual di VPS, SELALU cek dulu apakah ada perubahan lokal
-  yang belum di-commit:
-```bash
-  git status
-```
-  Kalau ada, selesaikan itu dulu (commit atau discard) sebelum lanjut.
+- Sebelum edit manual di VPS, SELALU cek dulu: `git status`
 - Lebih baik lagi: **hindari edit manual di VPS sama sekali.** Edit di
-  local/laptop, push, biarkan CI/CD yang deploy. VPS harus dianggap
-  "read-only" kecuali untuk keperluan darurat/diagnosis.
+  local/laptop, push, biarkan CI/CD yang deploy.
 
 ---
 
 ## 2. JANGAN tambah langkah build yang butuh tool yang tidak ada di host VPS
 
 **Kesalahan yang pernah terjadi:** Ditambahkan langkah `npm ci` / `npm run build`
-langsung di VPS (host, bukan di dalam Docker) ke `deploy.yml`. VPS ini
-TIDAK PERNAH di-install Node.js/npm — hanya Docker yang terinstall.
-Akibatnya setiap deploy gagal di step itu dengan error
-`Command 'npm' not found`, dan karena `set -e`, seluruh proses deploy
-berhenti total sebelum sampai ke Docker rebuild.
+langsung di VPS (host) ke `deploy.yml`. VPS ini TIDAK PERNAH di-install
+Node.js/npm — hanya Docker. Setiap deploy gagal dengan error
+`Command 'npm' not found`, dan karena `set -e`, seluruh proses berhenti.
 
 **Aturan:**
 - React/Vite **SUDAH** di-build otomatis di dalam `Dockerfile.frontend`
   lewat multi-stage build. Ini berjalan DI DALAM container, TIDAK BUTUH
   npm di host VPS.
-- **JANGAN PERNAH** menambahkan `npm install`, `npm run build`, `npm ci`,
-  atau perintah Node.js apapun yang dijalankan langsung di host VPS
-  lewat `deploy.yml` atau script SSH manual.
-- Kalau frontend butuh di-rebuild, cukup:
-```bash
-  docker compose up -d --build
-```
+- **JANGAN PERNAH** menambahkan `npm install/build/ci` langsung di host VPS.
+- Kalau frontend butuh di-rebuild, cukup: `docker compose up -d --build`
 
 ---
 
 ## 3. `deploy.yml` harus tetap SEDERHANA
 
 **Kesalahan yang pernah terjadi:** `deploy.yml` di-edit berulang kali
-dengan menambahkan patch-patch seperti `docker cp` manual, `--no-cache`
-di setiap build, jalankan seeder database manual, dan build React di
-host. Ini membuat workflow makin rapuh.
+dengan patch seperti `docker cp` manual, `--no-cache` di setiap build,
+jalankan seeder manual, dan build React di host. Ini bikin workflow
+makin rapuh dan gagal di step berbeda-beda.
 
 **Versi yang benar dan harus dipertahankan:**
 ```yaml
 name: Deploy to VPS
-
 on:
   push:
     branches:
       - main
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -94,24 +78,25 @@ jobs:
 ```
 
 **Aturan:**
-- Kalau ada masalah deploy, **DIAGNOSIS DULU** akar masalahnya sebelum
-  menambah langkah baru ke `deploy.yml`.
-- `docker compose build --no-cache` **JANGAN** dipakai sebagai default.
-- Migrasi/seed database **BUKAN** bagian dari setiap deploy.
+- Diagnosis dulu akar masalah sebelum menambah langkah baru ke `deploy.yml`.
+- `docker compose build --no-cache` JANGAN dipakai sebagai default.
+- Migrasi/seed database BUKAN bagian dari setiap deploy.
 
 ---
 
 ## 4. Sebelum lapor "kode sudah benar tapi belum aktif di production"
 
 **Aturan sebelum menyimpulkan bug "production belum update":**
-1. Cek dulu status Git di VPS: `git status`, `git log --oneline -5`
-2. Bandingkan `git log origin/main` vs `git log main` di VPS
+1. Cek `git status`, `git log --oneline -5` di VPS
+2. Bandingkan `git log origin/main` vs `git log main`
 3. Cek riwayat GitHub Actions (`/actions`)
 4. Cek bundle yang benar-benar disajikan:
 ```bash
    docker exec petplace-frontend ls /usr/share/nginx/html/assets/
    curl -sk https://petpelace.store/ | grep -o 'index-[^"]*\.\(js\|css\)'
 ```
+   Kalau hash file sama, deployment SUDAH sinkron — cari masalah lain
+   (misal cache browser).
 
 ---
 
@@ -122,22 +107,33 @@ jobs:
 
 ---
 
-## 6. JANGAN PERNAH buat file diagnostic/debug di folder `api/` tanpa proteksi auth
+## 6. JANGAN PERNAH buat file diagnostic/debug/cleanup di folder `api/` tanpa proteksi auth
 
-**Kejadian nyata:** File `check_db_users.php`, `check_kios_schema.php`, dan
-`check_naomi.php` sempat MEMBOCORKAN data asli semua user (nama lengkap,
-email, role, status) ke publik tanpa proteksi login sama sekali.
+**Kejadian nyata #1:** File `check_db_users.php`, `check_kios_schema.php`,
+`check_naomi.php` MEMBOCORKAN data asli semua user (nama, email, role) ke
+publik tanpa proteksi login sama sekali.
+
+**Kejadian nyata #2 (lebih parah):** File `clean_db.php` berisi PERINTAH
+DELETE ke database (user, pesanan, pembayaran, chat, kategori produk) —
+TANPA proteksi login, bisa dipicu SIAPA SAJA hanya dengan membuka URL-nya
+di browser. Risikonya BUKAN cuma bocor data, tapi MENGHAPUS DATA
+PRODUCTION SECARA PERMANEN.
 
 **Aturan:**
-- **JANGAN PERNAH** buat file PHP di `api/` yang query/dump data database
-  tanpa memanggil `requireAuth()` atau `requireAdmin()` di baris paling
-  atas file.
-- Kalau butuh debug sementara, lakukan di **local/laptop saja**, JANGAN
-  push file debug ke repo/production.
+- **JANGAN PERNAH** buat file PHP di `api/` yang query/dump ATAU
+  menghapus/mengubah data database tanpa `requireAuth()`/`requireAdmin()`
+  di baris paling atas file. Berlaku SANGAT KETAT untuk file yang
+  mengandung `DELETE`, `UPDATE`, `DROP`, `TRUNCATE`.
+- Kalau butuh debug/cleanup sementara, lakukan di **local/laptop saja**,
+  JANGAN push ke repo/production sama sekali.
 - Kalau terlanjur push, **segera hapus**.
 - Sebelum setiap push, cek `git status` dan `git diff --stat` untuk
-  pastikan tidak ada file `check_*.php`/`debug_*.php`/`test_*.php` yang
-  tidak sengaja ikut ter-commit.
+  pastikan tidak ada file berpola `check_*.php`, `debug_*.php`,
+  `test_*.php`, `clean_*.php`, `delete_*.php`, `reset_*.php` yang tidak
+  sengaja ikut ter-commit.
+- Kalau butuh cleanup data yang sah, jalankan lewat `docker exec`
+  langsung ke database dari terminal VPS (manual, sadar), JANGAN
+  dibungkus jadi endpoint HTTP publik.
 
 ---
 
@@ -150,4 +146,4 @@ email, role, status) ke publik tanpa proteksi login sama sekali.
 | Tambah patch baru ke `deploy.yml` tanpa diagnosis | Cek `git status`, log Actions, dan hash bundle dulu |
 | Pakai `--no-cache` setiap build | Biarkan Docker cache normal |
 | Simpulkan bug dari kode saja | Verifikasi langsung ke server sebelum lapor bug |
-| Push file `check_*.php`/`debug_*.php` tanpa auth ke `api/` | Selalu pakai `requireAuth()`/`requireAdmin()`, atau jangan push |
+| Push file `check_*.php`/`clean_*.php`/`debug_*.php` tanpa auth ke `api/` | Selalu pakai `requireAuth()`/`requireAdmin()`, atau jangan push sama sekali |
