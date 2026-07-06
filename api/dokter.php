@@ -145,9 +145,14 @@ function daftarDokter(): void {
         if (empty($data[$f])) sendError("Field '$f' wajib diisi");
     }
     
+    $qrisPath = '';
+    if (!empty($data['qris'])) {
+        $qrisPath = saveBase64Image($data['qris'], 'qris_dokter');
+    }
+
     $db->prepare("
-        INSERT INTO dokter_hewan (id_pengguna, nama_dokter, spesialisasi, no_str, deskripsi, foto, no_telepon, email, alamat_praktik, kota, lat, lng, harga_konsultasi, no_rekening, nama_bank, nama_pemilik_rek, status)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'pending')
+        INSERT INTO dokter_hewan (id_pengguna, nama_dokter, spesialisasi, no_str, deskripsi, foto, no_telepon, email, alamat_praktik, kota, lat, lng, harga_konsultasi, no_rekening, nama_bank, nama_pemilik_rek, qris_image, status)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, 'pending')
     ")->execute([
         $user['id_pengguna'],
         $data['nama'],
@@ -165,6 +170,7 @@ function daftarDokter(): void {
         $data['noRekening'],
         $data['namaBank'],
         $data['namaPemilikRek'] ?? '',
+        $qrisPath
     ]);
     
     $dokId = $db->lastInsertId();
@@ -189,9 +195,32 @@ function updateDokter(int $id): void {
     $fields = [];
     $params = [];
     
-    $map = ['nama' => 'nama_dokter', 'spesialisasi' => 'spesialisasi', 'deskripsi' => 'deskripsi', 'foto' => 'foto', 'hargaKonsultasi' => 'harga_konsultasi', 'statusReady' => 'status_ready', 'kota' => 'kota', 'alamat' => 'alamat_praktik', 'lat' => 'lat', 'lng' => 'lng'];
+    $map = [
+        'nama' => 'nama_dokter',
+        'spesialisasi' => 'spesialisasi',
+        'deskripsi' => 'deskripsi',
+        'foto' => 'foto',
+        'hargaKonsultasi' => 'harga_konsultasi',
+        'statusReady' => 'status_ready',
+        'kota' => 'kota',
+        'alamat' => 'alamat_praktik',
+        'lat' => 'lat',
+        'lng' => 'lng',
+        'qris' => 'qris_image',
+        'namaBank' => 'nama_bank',
+        'noRekening' => 'no_rekening',
+        'namaPemilikRek' => 'nama_pemilik_rek'
+    ];
+    
     foreach ($map as $key => $col) {
-        if (isset($data[$key])) { $fields[] = "$col = ?"; $params[] = $data[$key]; }
+        if (isset($data[$key])) {
+            $val = $data[$key];
+            if (in_array($key, ['foto', 'qris'])) {
+                $val = saveBase64Image($val, $col);
+            }
+            $fields[] = "$col = ?";
+            $params[] = $val;
+        }
     }
     
     if (!empty($fields)) {

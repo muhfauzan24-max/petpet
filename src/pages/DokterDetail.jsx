@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { MapPin, Phone, Send, Calendar, MessageCircle, CheckCircle, ArrowLeft } from 'lucide-react';
-import { formatRupiah } from '../services/api';
-import { dokterAPI } from '../services/api';
+import { formatRupiah, dokterAPI, getImageUrl } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import RatingStars from '../components/ui/RatingStars';
 
@@ -282,12 +281,20 @@ export default function DokterDetail() {
             </div>
 
             {/* Payment info */}
-            {(dokter.namaBank || dokter.noRekening) && (
+            {(dokter.namaBank || dokter.noRekening || dokter.qris) && (
               <div className="card" style={{ padding: '1.25rem' }}>
                 <h5 style={{ marginBottom: '0.75rem', fontSize: '0.875rem' }}>💳 Info Pembayaran</h5>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
                   {dokter.namaBank && <p>Bank: <strong style={{ color: 'var(--text-primary)' }}>{dokter.namaBank}</strong></p>}
                   {dokter.noRekening && <p>No. Rek: <strong style={{ color: 'var(--text-primary)' }}>{dokter.noRekening}</strong></p>}
+                  {dokter.qris && (
+                    <div style={{ marginTop: '0.75rem', textAlign: 'center' }}>
+                      <div style={{ background: 'white', padding: '0.5rem', borderRadius: 'var(--radius-md)', display: 'inline-block', marginBottom: '0.25rem' }}>
+                        <img src={getImageUrl(dokter.qris)} alt="QRIS Dokter" style={{ width: 140, height: 140, display: 'block', objectFit: 'contain' }} />
+                      </div>
+                      <p style={{ fontSize: '0.7rem', fontWeight: 'bold', color: 'var(--primary)' }}>QRIS DOKTER HEWAN</p>
+                    </div>
+                  )}
                   <p style={{ marginTop: '0.5rem', fontSize: '0.75rem' }}>Upload bukti bayar setelah janji dikonfirmasi oleh dokter.</p>
                 </div>
               </div>

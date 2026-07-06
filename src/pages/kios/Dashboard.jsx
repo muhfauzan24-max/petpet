@@ -18,7 +18,9 @@ export default function KiosDashboard() {
   const [toast, setToast]           = useState(null);
   const [selectedBukti, setSelectedBukti] = useState(null); // untuk modal lihat foto
   const [showLokasiModal, setShowLokasiModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [kiosLokasi, setKiosLokasi] = useState({ lat: '', lng: '', alamat: '', kota: 'Makassar', id: null });
+  const [kiosSettings, setKiosSettings] = useState({ namaBank: '', noRekening: '', namaPemilikRek: '', qris: '' });
 
   const idKios    = user?.kios?.id;
   const statusKios = user?.kios?.status;
@@ -65,7 +67,10 @@ export default function KiosDashboard() {
     // Also load kios lokasi
     if (idKios) {
       kiosAPI.detail(idKios)
-        .then(d => setKiosLokasi({ lat: d.lat || '', lng: d.lng || '', alamat: d.alamat || '', kota: d.kota || 'Makassar', id: idKios }))
+        .then(d => {
+          setKiosLokasi({ lat: d.lat || '', lng: d.lng || '', alamat: d.alamat || '', kota: d.kota || 'Makassar', id: idKios });
+          setKiosSettings({ namaBank: d.namaBank || '', noRekening: d.noRekening || '', namaPemilikRek: d.namaPemilikRek || '', qris: d.qris || '' });
+        })
         .catch(() => setKiosLokasi(prev => ({ ...prev, id: idKios })));
     }
   }, [idKios]);
@@ -326,6 +331,91 @@ export default function KiosDashboard() {
     );
   }
 
+  // ─── Modal Pengaturan Kios (QRIS & Bank) ──────────────────────────────────────
+  function PengaturanKiosModal({ onClose }) {
+    const [form, setForm] = useState({
+      namaBank: kiosSettings.namaBank,
+      noRekening: kiosSettings.noRekening,
+      namaPemilikRek: kiosSettings.namaPemilikRek,
+      qris: kiosSettings.qris,
+    });
+    const [saving, setSaving] = useState(false);
+
+    const handleUploadQRIS = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (file.size > 2 * 1024 * 1024) {
+        alert('Ukuran foto maksimal adalah 2MB');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setForm(f => ({ ...f, qris: reader.result }));
+      };
+      reader.readAsDataURL(file);
+    };
+
+    const handleSave = async (e) => {
+      e.preventDefault();
+      if (!form.namaBank || !form.noRekening || !form.namaPemilikRek) {
+        alert('Informasi Bank wajib diisi!');
+        return;
+      }
+      setSaving(true);
+      try {
+        await kiosAPI.update(idKios, form);
+        setKiosSettings(form);
+        showToast('success', '✅ Pengaturan pembayaran kios berhasil diperbarui!');
+        onClose();
+      } catch (err) {
+        alert(err.message || 'Gagal menyimpan pengaturan');
+      } finally {
+        setSaving(false);
+      }
+    };
+
+    return (
+      <div style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
+           onClick={e => e.target === e.currentTarget && onClose()}>
+        <div className="card" style={{ width: '100%', maxWidth: 500, maxHeight: '90vh', overflowY: 'auto', padding: '1.75rem', position: 'relative' }}>
+          <button onClick={onClose} style={{ position: 'absolute', top: 14, right: 14, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '1.2rem' }}>✕</button>
+          <h3 style={{ marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>💳 Pengaturan QRIS & Rekening</h3>
+          
+          <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div className="form-group">
+              <label className="form-label">Nama Bank</label>
+              <input required value={form.namaBank} onChange={e => setForm(f => ({ ...f, namaBank: e.target.value }))} className="form-input" placeholder="Contoh: BCA, Mandiri, BRI" />
+            </div>
+            <div className="form-group">
+              <label className="form-label">No. Rekening</label>
+              <input required value={form.noRekening} onChange={e => setForm(f => ({ ...f, noRekening: e.target.value }))} className="form-input" placeholder="Contoh: 12345678" />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Nama Pemilik Rekening</label>
+              <input required value={form.namaPemilikRek} onChange={e => setForm(f => ({ ...f, namaPemilikRek: e.target.value }))} className="form-input" placeholder="Nama sesuai buku tabungan" />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Upload QRIS Baru (Optional)</label>
+              <input type="file" accept="image/*" onChange={handleUploadQRIS} className="form-input" style={{ cursor: 'pointer' }} />
+              {form.qris && (
+                <div style={{ marginTop: '0.5rem', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border)', maxWidth: 200, maxHeight: 200, display: 'flex', justifyContent: 'center' }}>
+                  <img src={getImageUrl(form.qris)} alt="QRIS Preview" style={{ width: '100%', height: 'auto', objectFit: 'contain' }} />
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+              <button type="submit" disabled={saving} className="btn btn-primary" style={{ flex: 1 }}>
+                {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
+              </button>
+              <button type="button" onClick={onClose} className="btn btn-secondary">Batal</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   const getSidebarLinks = () => [
     { href: "/kios",          icon: "🏠", label: "Dashboard" },
     { href: "/kios/produk",   icon: "📦", label: "Produk" },
@@ -418,7 +508,7 @@ export default function KiosDashboard() {
               </div>
             )}
           </div>
-          <div style={{ display:"flex", gap:"0.5rem", flexShrink:0 }}>
+          <div style={{ display:"flex", gap:"0.5rem", flexShrink:0, flexWrap:"wrap" }}>
             <button
               onClick={() => setShowLokasiModal(true)}
               className="btn btn-sm"
@@ -430,6 +520,13 @@ export default function KiosDashboard() {
               }}
             >
               <Navigation size={13} /> {kiosLokasi?.lat ? 'Perbarui Lokasi' : 'Atur Lokasi'}
+            </button>
+            <button
+              onClick={() => setShowSettingsModal(true)}
+              className="btn btn-secondary btn-sm"
+              style={{ display:"flex", alignItems:"center", gap:"0.35rem", fontWeight: 600, fontSize: "0.78rem" }}
+            >
+              💳 QRIS & Rekening
             </button>
             <button onClick={loadData} className="btn btn-secondary btn-sm" style={{ display:"flex", alignItems:"center", gap:"0.35rem" }}>
               <RefreshCw size={14} /> Refresh
@@ -801,6 +898,12 @@ export default function KiosDashboard() {
           setKiosLokasi(prev => ({ ...prev, ...newLoc }));
           showToast('success', '📍 Lokasi kios berhasil disimpan!');
         }}
+      />
+    )}
+
+    {showSettingsModal && (
+      <PengaturanKiosModal
+        onClose={() => setShowSettingsModal(false)}
       />
     )}
 

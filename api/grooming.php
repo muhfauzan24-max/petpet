@@ -113,9 +113,14 @@ function daftarGrooming(): void {
         if (empty($data[$f])) sendError("Field '$f' wajib diisi");
     }
     
+    $qrisPath = '';
+    if (!empty($data['qris'])) {
+        $qrisPath = saveBase64Image($data['qris'], 'qris_grooming');
+    }
+
     $db->prepare("
-        INSERT INTO penyedia_grooming (id_pengguna, nama_usaha, deskripsi, foto, no_telepon, email, alamat, kota, lat, lng, jam_buka, jam_tutup, jenis_hewan, no_rekening, nama_bank, nama_pemilik_rek, status)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'pending')
+        INSERT INTO penyedia_grooming (id_pengguna, nama_usaha, deskripsi, foto, no_telepon, email, alamat, kota, lat, lng, jam_buka, jam_tutup, jenis_hewan, no_rekening, nama_bank, nama_pemilik_rek, qris_image, status)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, 'pending')
     ")->execute([
         $user['id_pengguna'],
         $data['nama'],
@@ -133,6 +138,7 @@ function daftarGrooming(): void {
         $data['noRekening'],
         $data['namaBank'],
         $data['namaPemilikRek'] ?? '',
+        $qrisPath
     ]);
     
     $grmId = $db->lastInsertId();
@@ -163,9 +169,30 @@ function updateGrooming(int $id): void {
     $data = getRequestBody();
     $fields = []; $params = [];
     
-    $map = ['nama' => 'nama_usaha', 'deskripsi' => 'deskripsi', 'foto' => 'foto', 'kota' => 'kota', 'alamat' => 'alamat', 'jamBuka' => 'jam_buka', 'jamTutup' => 'jam_tutup', 'jenisHewan' => 'jenis_hewan'];
+    $map = [
+        'nama' => 'nama_usaha',
+        'deskripsi' => 'deskripsi',
+        'foto' => 'foto',
+        'kota' => 'kota',
+        'alamat' => 'alamat',
+        'jamBuka' => 'jam_buka',
+        'jamTutup' => 'jam_tutup',
+        'jenisHewan' => 'jenis_hewan',
+        'qris' => 'qris_image',
+        'namaBank' => 'nama_bank',
+        'noRekening' => 'no_rekening',
+        'namaPemilikRek' => 'nama_pemilik_rek'
+    ];
+    
     foreach ($map as $key => $col) {
-        if (isset($data[$key])) { $fields[] = "$col = ?"; $params[] = $data[$key]; }
+        if (isset($data[$key])) {
+            $val = $data[$key];
+            if (in_array($key, ['foto', 'qris'])) {
+                $val = saveBase64Image($val, $col);
+            }
+            $fields[] = "$col = ?";
+            $params[] = $val;
+        }
     }
     
     if (!empty($fields)) {

@@ -402,7 +402,7 @@ export default function Keranjang() {
                 {(pesanan.kiosList && pesanan.kiosList.length > 0 ? pesanan.kiosList : []).map((k, idx) => {
                   const namaKios = k.namaKios || 'Kios';
                   if (pesanan.metodeBayar === 'qris') {
-                    const qrisUrl = k.qrisImage || `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=PetPlace_${pesanan.totalBayar}_${namaKios}`;
+                    const qrisUrl = k.qrisImage ? getImageUrl(k.qrisImage) : `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=PetPlace_${pesanan.totalBayar}_${namaKios}`;
                     return (
                       <div key={idx} style={{ padding: '1.5rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', marginBottom: '1rem', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
                         <div style={{ fontWeight: 700, marginBottom: '0.75rem', fontSize: '1rem' }}>🏪 {namaKios}</div>

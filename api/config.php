@@ -87,3 +87,31 @@ function requireAdmin(): array {
     }
     return $user;
 }
+
+function saveBase64Image(string $base64Str, string $prefix): ?string {
+    if (empty($base64Str)) return null;
+    if (preg_match('/^data:image\/(\w+);base64,/', $base64Str, $type)) {
+        $fotoData = substr($base64Str, strpos($base64Str, ',') + 1);
+        $ext = strtolower($type[1]);
+        if (!in_array($ext, ['jpg', 'jpeg', 'gif', 'png', 'webp'])) {
+            sendError('Format gambar tidak didukung (gunakan JPG, PNG, WEBP, atau GIF)');
+        }
+        $decoded = base64_decode($fotoData);
+        if ($decoded === false) {
+            sendError('Dekode gambar gagal');
+        }
+        $filename = $prefix . '_' . uniqid() . '_' . time() . '.' . $ext;
+        $uploadDir = __DIR__ . '/../uploads/';
+        if (!is_dir($uploadDir)) {
+            if (!@mkdir($uploadDir, 0755, true)) {
+                sendError('Gagal membuat direktori upload di server');
+            }
+        }
+        $filePath = $uploadDir . $filename;
+        if (!@file_put_contents($filePath, $decoded)) {
+            sendError('Gagal menyimpan file gambar ke server');
+        }
+        return '/uploads/' . $filename;
+    }
+    return $base64Str;
+}

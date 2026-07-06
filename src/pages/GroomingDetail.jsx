@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { MapPin, Clock, Send, MessageCircle, ArrowLeft, Check } from 'lucide-react';
-import { formatRupiah } from '../services/api';
-import { groomingAPI } from '../services/api';
+import { formatRupiah, groomingAPI, getImageUrl } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import RatingStars from '../components/ui/RatingStars';
 
@@ -262,9 +261,17 @@ export default function GroomingDetail() {
                 </>
               )}
 
-              {(grooming.noRekening || grooming.namaBank) && (
+              {(grooming.noRekening || grooming.namaBank || grooming.qris) && (
                 <div style={{ marginTop: '1rem', padding: '0.75rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                  💳 No. Rek: <strong style={{ color: 'var(--text-primary)' }}>{grooming.noRekening}</strong> ({grooming.namaBank})
+                  {grooming.noRekening && <p>💳 No. Rek: <strong style={{ color: 'var(--text-primary)' }}>{grooming.noRekening}</strong> ({grooming.namaBank})</p>}
+                  {grooming.qris && (
+                    <div style={{ marginTop: '0.75rem', textAlign: 'center' }}>
+                      <div style={{ background: 'white', padding: '0.5rem', borderRadius: 'var(--radius-md)', display: 'inline-block', marginBottom: '0.25rem' }}>
+                        <img src={getImageUrl(grooming.qris)} alt="QRIS Grooming" style={{ width: 140, height: 140, display: 'block', objectFit: 'contain' }} />
+                      </div>
+                      <p style={{ fontSize: '0.7rem', fontWeight: 'bold', color: 'var(--primary)' }}>QRIS SALON GROOMING</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

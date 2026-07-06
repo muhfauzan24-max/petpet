@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import DashboardSidebar from "../../components/layout/DashboardSidebar";
 import { formatRupiah } from "../../data/mockData";
-import { dokterAPI } from "../../services/api";
+import { dokterAPI, getImageUrl } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
-import { RefreshCw, Calendar, Users, DollarSign } from "lucide-react";
+import { RefreshCw, Calendar, Users, DollarSign, CheckCircle } from "lucide-react";
 
 const links = [
   { href: "/portal-dokter", icon: "🏠", label: "Dashboard" },
@@ -17,18 +17,27 @@ export default function DokterPortalDashboard() {
   const [stats, setStats]   = useState(null);
   const [janji, setJanji]   = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [dokterSettings, setDokterSettings] = useState({ namaBank: '', noRekening: '', namaPemilikRek: '', qris: '' });
   const idDokter = user?.dokter?.id;
 
   const loadData = async () => {
     if (!idDokter) { setLoading(false); return; }
     setLoading(true);
     try {
-      const [statsData, janjiData] = await Promise.all([
+      const [statsData, janjiData, detailData] = await Promise.all([
         dokterAPI.stats(idDokter),
         dokterAPI.janji(idDokter),
+        dokterAPI.detail(idDokter),
       ]);
       setStats(statsData);
       setJanji(janjiData || []);
+      setDokterSettings({
+        namaBank: detailData.namaBank || '',
+        noRekening: detailData.noRekening || '',
+        namaPemilikRek: detailData.namaPemilikRek || '',
+        qris: detailData.qris || '',
+      });
     } catch (err) {
       console.error(err);
     } finally {
@@ -49,9 +58,18 @@ export default function DokterPortalDashboard() {
               Selamat datang, {user?.nama} — {user?.dokter?.spesialisasi || 'Dokter Hewan'}
             </p>
           </div>
-          <button onClick={loadData} className="btn btn-secondary btn-sm" style={{ display:"flex", alignItems:"center", gap:"0.35rem" }}>
-            <RefreshCw size={14} /> Refresh
-          </button>
+          <div style={{ display:"flex", gap:"0.5rem" }}>
+            <button
+              onClick={() => setShowSettingsModal(true)}
+              className="btn btn-secondary btn-sm"
+              style={{ display:"flex", alignItems:"center", gap:"0.35rem", fontWeight: 600, fontSize: "0.78rem" }}
+            >
+              💳 QRIS & Rekening
+            </button>
+            <button onClick={loadData} className="btn btn-secondary btn-sm" style={{ display:"flex", alignItems:"center", gap:"0.35rem" }}>
+              <RefreshCw size={14} /> Refresh
+            </button>
+          </div>
         </div>
 
         {!idDokter ? (
@@ -105,6 +123,98 @@ export default function DokterPortalDashboard() {
           </>
         )}
       </div>
+      
+      {showSettingsModal && (
+        <PengaturanDokterModal
+          onClose={() => setShowSettingsModal(false)}
+        />
+      )}
     </div>
   );
+
+  // ─── Modal Pengaturan Dokter (QRIS & Bank) ──────────────────────────────────────
+  function PengaturanDokterModal({ onClose }) {
+    const [form, setForm] = useState({
+      namaBank: dokterSettings.namaBank,
+      noRekening: dokterSettings.noRekening,
+      namaPemilikRek: dokterSettings.namaPemilikRek,
+      qris: dokterSettings.qris,
+    });
+    const [saving, setSaving] = useState(false);
+
+    const handleUploadQRIS = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (file.size > 2 * 1024 * 1024) {
+        alert('Ukuran foto maksimal adalah 2MB');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setForm(f => ({ ...f, qris: reader.result }));
+      };
+      reader.readAsDataURL(file);
+    };
+
+    const handleSave = async (e) => {
+      e.preventDefault();
+      if (!form.namaBank || !form.noRekening || !form.namaPemilikRek) {
+        alert('Informasi Bank wajib diisi!');
+        return;
+      }
+      setSaving(true);
+      try {
+        await dokterAPI.update(idDokter, form);
+        setDokterSettings(form);
+        alert('Pengaturan pembayaran dokter berhasil diperbarui!');
+        onClose();
+        loadData();
+      } catch (err) {
+        alert(err.message || 'Gagal menyimpan pengaturan');
+      } finally {
+        setSaving(false);
+      }
+    };
+
+    return (
+      <div style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
+           onClick={e => e.target === e.currentTarget && onClose()}>
+        <div className="card" style={{ width: '100%', maxWidth: 500, maxHeight: '90vh', overflowY: 'auto', padding: '1.75rem', position: 'relative' }}>
+          <button onClick={onClose} style={{ position: 'absolute', top: 14, right: 14, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '1.2rem' }}>✕</button>
+          <h3 style={{ marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>💳 Pengaturan QRIS & Rekening</h3>
+          
+          <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div className="form-group">
+              <label className="form-label">Nama Bank</label>
+              <input required value={form.namaBank} onChange={e => setForm(f => ({ ...f, namaBank: e.target.value }))} className="form-input" placeholder="Contoh: BCA, Mandiri, BRI" />
+            </div>
+            <div className="form-group">
+              <label className="form-label">No. Rekening</label>
+              <input required value={form.noRekening} onChange={e => setForm(f => ({ ...f, noRekening: e.target.value }))} className="form-input" placeholder="Contoh: 12345678" />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Nama Pemilik Rekening</label>
+              <input required value={form.namaPemilikRek} onChange={e => setForm(f => ({ ...f, namaPemilikRek: e.target.value }))} className="form-input" placeholder="Nama sesuai buku tabungan" />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Upload QRIS Baru (Optional)</label>
+              <input type="file" accept="image/*" onChange={handleUploadQRIS} className="form-input" style={{ cursor: 'pointer' }} />
+              {form.qris && (
+                <div style={{ marginTop: '0.5rem', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border)', maxWidth: 200, maxHeight: 200, display: 'flex', justifyContent: 'center' }}>
+                  <img src={getImageUrl(form.qris)} alt="QRIS Preview" style={{ width: '100%', height: 'auto', objectFit: 'contain' }} />
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+              <button type="submit" disabled={saving} className="btn btn-primary" style={{ flex: 1 }}>
+                {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
+              </button>
+              <button type="button" onClick={onClose} className="btn btn-secondary">Batal</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
 }

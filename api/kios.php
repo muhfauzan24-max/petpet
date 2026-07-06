@@ -119,6 +119,11 @@ function daftarKios(): void {
     $nama   = trim($data['namaKios']);
     $slug   = slugify($nama) . '-' . substr(md5(microtime()), 0, 6);
     
+    $qrisPath = '';
+    if (!empty($data['qris'])) {
+        $qrisPath = saveBase64Image($data['qris'], 'qris_kios');
+    }
+    
     $db->prepare("
         INSERT INTO kios (id_pengguna, nama_kios, slug, deskripsi, no_telepon, email_kios, jam_buka, jam_tutup, hari_operasi, no_rekening, nama_bank, nama_pemilik_rek, qris_image, status)
         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,'pending')
@@ -133,7 +138,7 @@ function daftarKios(): void {
         $data['noRekening'],
         $data['namaBank'],
         $data['namaPemilikRek'],
-        $data['qris'] ?? '',
+        $qrisPath,
     ]);
     
     $kiosId = $db->lastInsertId();
@@ -184,8 +189,12 @@ function updateKios(int $id): void {
     
     foreach ($map as $key => $col) {
         if (isset($data[$key])) {
+            $val = $data[$key];
+            if (in_array($key, ['logo', 'banner', 'qris'])) {
+                $val = saveBase64Image($val, $col);
+            }
             $fields[] = "$col = ?";
-            $params[] = $data[$key];
+            $params[] = $val;
         }
     }
     
