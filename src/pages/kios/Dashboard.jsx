@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import DashboardSidebar from "../../components/layout/DashboardSidebar";
 import { useAuth } from "../../context/AuthContext";
 import { formatRupiah } from "../../data/mockData";
-import { kiosAPI, pesananAPI } from "../../services/api";
+import { kiosAPI, pesananAPI, getImageUrl } from "../../services/api";
 import { RefreshCw, Bell, CheckCircle, XCircle, Eye, Clock, Package, Truck, MapPin, Navigation, Crosshair, Loader } from "lucide-react";
 import { NotifikasiKiosAlert } from "../../components/ui/NotifikasiKios";
 import AlamatAutocomplete from "../../components/ui/AlamatAutocomplete";
