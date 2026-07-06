@@ -119,7 +119,7 @@ export default function Produk() {
         </div>
 
         {/* Kategori scroll */}
-        <div style={{ overflowX: 'auto', paddingBottom: '0.5rem', marginBottom: '1.5rem' }}>
+        <div className="scroll-x" style={{ paddingBottom: '0.5rem', marginBottom: '1.5rem' }}>
           <div style={{ display: 'flex', gap: '0.5rem', width: 'max-content' }}>
             <button onClick={() => { setActiveKat('semua'); setActiveJenis('semua'); navigate('/produk'); }}
               className={`btn btn-sm ${activeKat === 'semua' ? 'btn-primary' : 'btn-secondary'}`}>

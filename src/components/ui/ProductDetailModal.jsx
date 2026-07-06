@@ -205,8 +205,8 @@ export default function ProductDetailModal({ produkId, onClose }) {
             </Link>
 
             {/* Weight */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-              <Scale size={14} style={{ color: 'var(--primary)' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '1rem', flexWrap: 'wrap' }}>
+              <Scale size={14} style={{ color: 'var(--primary)', flexShrink: 0 }} />
               <span>Berat: <strong>{formatBerat(produk.beratGram)}</strong></span>
               <span>•</span>
               <span>Stok: <strong>{produk.stok}</strong></span>
@@ -215,7 +215,7 @@ export default function ProductDetailModal({ produkId, onClose }) {
             </div>
 
             {/* Quantity */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
               <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Jumlah:</span>
               <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', overflow: 'hidden', height: 32 }}>
                 <button onClick={() => setJumlah(j => Math.max(1, j - 1))} style={{ width: 30, height: '100%', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-primary)', fontSize: '1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
@@ -228,7 +228,7 @@ export default function ProductDetailModal({ produkId, onClose }) {
             </div>
 
             {/* Two Action Buttons */}
-            <div style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>
+            <div className="product-detail-actions">
               <button
                 onClick={handleAddCart}
                 className={`btn btn-secondary btn-sm`}

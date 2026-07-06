@@ -592,3 +592,15 @@ div:has(> .dashboard-sidebar) {
   }
 }
 
+.product-detail-actions {
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+@media (max-width: 576px) {
+  .product-detail-actions {
+    flex-direction: column !important;
+  }
+}
+
