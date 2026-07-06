@@ -41,9 +41,9 @@ try {
         $logs[] = "Janji temu & booking demo dibersihkan.";
 
         // Hapus pesanan & pembayaran
-        $db->exec("DELETE FROM pembayaran WHERE id_pesanan IN (SELECT id_pesanan FROM pesanan WHERE id_pengguna IN ($userIdsStr) OR id_pesanan IN (SELECT DISTINCT id_pesanan FROM detail_pesanan WHERE id_kios IN (SELECT id_kios FROM kios WHERE id_pengguna IN ($userIdsStr))))");
-        $db->exec("DELETE FROM detail_pesanan WHERE id_pesanan IN (SELECT id_pesanan FROM pesanan WHERE id_pengguna IN ($userIdsStr) OR id_pesanan IN (SELECT DISTINCT id_pesanan FROM detail_pesanan WHERE id_kios IN (SELECT id_kios FROM kios WHERE id_pengguna IN ($userIdsStr))))");
-        $db->exec("DELETE FROM pesanan WHERE id_pengguna IN ($userIdsStr) OR id_pesanan IN (SELECT DISTINCT id_pesanan FROM detail_pesanan WHERE id_kios IN (SELECT id_kios FROM kios WHERE id_pengguna IN ($userIdsStr)))");
+        $db->exec("DELETE FROM pembayaran WHERE id_pesanan IN (SELECT id_pesanan FROM pesanan WHERE id_pengguna IN ($userIdsStr) OR id_pesanan IN (SELECT id_pesanan FROM (SELECT DISTINCT id_pesanan FROM detail_pesanan WHERE id_kios IN (SELECT id_kios FROM kios WHERE id_pengguna IN ($userIdsStr))) AS tmp))");
+        $db->exec("DELETE FROM detail_pesanan WHERE id_pesanan IN (SELECT id_pesanan FROM pesanan WHERE id_pengguna IN ($userIdsStr) OR id_pesanan IN (SELECT id_pesanan FROM (SELECT DISTINCT id_pesanan FROM detail_pesanan WHERE id_kios IN (SELECT id_kios FROM kios WHERE id_pengguna IN ($userIdsStr))) AS tmp))");
+        $db->exec("DELETE FROM pesanan WHERE id_pengguna IN ($userIdsStr) OR id_pesanan IN (SELECT id_pesanan FROM (SELECT DISTINCT id_pesanan FROM detail_pesanan WHERE id_kios IN (SELECT id_kios FROM kios WHERE id_pengguna IN ($userIdsStr))) AS tmp)");
         $logs[] = "Pesanan & pembayaran demo dibersihkan.";
 
         // Hapus chat percakapan & pesan
