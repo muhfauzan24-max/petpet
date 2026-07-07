@@ -1,0 +1,7 @@
+# Cegah eksekusi script apapun di folder upload — hanya file statis (gambar) yang boleh disajikan
+<FilesMatch "\.(php|phtml|php3|php4|php5|php7|pl|py|jsp|asp|aspx|sh|cgi|exe)$">
+    Require all denied
+</FilesMatch>
+
+# Cegah listing isi folder
+Options -Indexes -ExecCGI
