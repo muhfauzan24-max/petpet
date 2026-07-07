@@ -287,6 +287,8 @@ function uploadBuktiBayar(): void {
     if (!$pesanan) sendError('Pesanan tidak ditemukan', 404);
     if ($pesanan['id_pengguna'] != $user['id_pengguna']) sendError('Tidak memiliki akses', 403);
     
+    $buktiFoto = isset($data['buktiFoto']) ? saveBase64Image($data['buktiFoto'], 'bukti_bayar') : '';
+
     $db->prepare("
         INSERT INTO pembayaran (id_pesanan, metode, nama_bank, no_rekening, nama_pengirim, jumlah_bayar, bukti_foto, waktu_bayar, status)
         VALUES (?,?,?,?,?,?,?,NOW(),'menunggu')
@@ -298,7 +300,7 @@ function uploadBuktiBayar(): void {
         $data['noRekening'] ?? '',
         $data['namaPengirim'] ?? '',
         (float)($data['jumlahBayar'] ?? 0),
-        $data['buktiFoto'] ?? '',
+        $buktiFoto,
     ]);
     
     $db->prepare("UPDATE pesanan SET status = 'verifikasi' WHERE id_pesanan = ?")->execute([$idPesanan]);
