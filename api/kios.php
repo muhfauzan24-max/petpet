@@ -52,14 +52,25 @@ function listKios(): void {
                k.jam_buka AS jamBuka, k.jam_tutup AS jamTutup, k.qris_image AS qris,
                k.status, k.verified,
                lk.kota, lk.lat, lk.lng, lk.alamat_lengkap AS alamat,
-               (SELECT COUNT(*) FROM produk p WHERE p.id_kios = k.id_kios AND p.status = 'aktif') AS totalProduk
+               p.foto_profil AS ownerFoto,
+               (SELECT COUNT(*) FROM produk pr WHERE pr.id_kios = k.id_kios AND pr.status = 'aktif') AS totalProduk
         FROM kios k
         LEFT JOIN lokasi_kios lk ON lk.id_kios = k.id_kios
+        LEFT JOIN pengguna p ON p.id_pengguna = k.id_pengguna
         WHERE $whereSql
         ORDER BY k.id_kios DESC
     ");
     $stmt->execute($params);
     $rows = $stmt->fetchAll();
+
+    // Fallback logo to owner's profile picture if empty
+    foreach ($rows as &$row) {
+        if (empty($row['logo']) && !empty($row['ownerFoto'])) {
+            $row['logo'] = $row['ownerFoto'];
+        }
+    }
+    unset($row);
+
     sendSuccess($rows);
 }
 
@@ -73,9 +84,11 @@ function detailKios(int $id): void {
                k.jam_buka AS jamBuka, k.jam_tutup AS jamTutup, k.hari_operasi AS hariOperasi,
                k.qris_image AS qris, k.persen_komisi AS persenKomisi,
                k.status, k.verified, k.created_at AS createdAt,
-               lk.kota, lk.lat, lk.lng, lk.alamat_lengkap AS alamat
+               lk.kota, lk.lat, lk.lng, lk.alamat_lengkap AS alamat,
+               p.foto_profil AS ownerFoto
         FROM kios k
         LEFT JOIN lokasi_kios lk ON lk.id_kios = k.id_kios
+        LEFT JOIN pengguna p ON p.id_pengguna = k.id_pengguna
         WHERE k.id_kios = ?
         LIMIT 1
     ");
@@ -83,6 +96,11 @@ function detailKios(int $id): void {
     $kios = $stmt->fetch();
     
     if (!$kios) sendError('Kios tidak ditemukan', 404);
+
+    // Fallback logo to owner's profile picture if empty
+    if (empty($kios['logo']) && !empty($kios['ownerFoto'])) {
+        $kios['logo'] = $kios['ownerFoto'];
+    }
     
     // Get products
     $produkStmt = $db->prepare("
