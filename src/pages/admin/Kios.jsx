@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import DashboardSidebar from "../../components/layout/DashboardSidebar";
 import { formatRupiah } from "../../services/api"; // import formatRupiah from services/api
 import { kiosAPI, dokterAPI, groomingAPI, adminAPI, getImageUrl } from "../../services/api";
-import { CheckCircle, XCircle, RefreshCw, X, AlertTriangle, Eye, User, Stethoscope, Scissors, Store, Shield } from "lucide-react";
+import { CheckCircle, XCircle, RefreshCw, X, AlertTriangle, Eye, User, Stethoscope, Scissors, Store, Shield, Package } from "lucide-react";
 
 const links = [
   { href: "/admin", icon: "🏠", label: "Dashboard" },
