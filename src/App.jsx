@@ -21,6 +21,7 @@ import Login from './pages/Login';
 import Keranjang from './pages/Keranjang';
 import PaymentPage from './pages/PaymentPage';
 import Profile from './pages/Profile';
+import KiosPublik from './pages/KiosPublik';
 
 // Akun (pembeli)
 import AkunDashboard from './pages/akun/Dashboard';
@@ -102,6 +103,7 @@ export default function App() {
             <Route path="/dokter/:id" element={<PageLayout><DokterDetail /></PageLayout>} />
             <Route path="/grooming" element={<PageLayout><Grooming /></PageLayout>} />
             <Route path="/grooming/:id" element={<PageLayout><GroomingDetail /></PageLayout>} />
+            <Route path="/kios-publik/:id" element={<PageLayout><KiosPublik /></PageLayout>} />
             <Route path="/peta" element={<PageLayout><Peta /></PageLayout>} />
             <Route path="/keranjang" element={<PageLayout><Keranjang /></PageLayout>} />
             <Route path="/payment/:id" element={<PageLayout><PaymentPage /></PageLayout>} />

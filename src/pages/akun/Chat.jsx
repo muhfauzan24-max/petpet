@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import DashboardSidebar from '../../components/layout/DashboardSidebar';
 import { useAuth } from '../../context/AuthContext';
 import { chatAPI, kiosAPI, dokterAPI as dApi, groomingAPI } from '../../services/api';
@@ -6,13 +7,42 @@ import { Send, User } from 'lucide-react';
 
 export default function AkunChat() {
   const { user } = useAuth();
+  const location = useLocation();
   const [conversations, setConversations] = useState([]);
   const [selected, setSelected] = useState(null);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [allMitra, setAllMitra] = useState([]);
   const [loading, setLoading] = useState(true);
-  
+
+  // Handle pre-selected partner from location state
+  useEffect(() => {
+    if (location.state?.idMitra && location.state?.tipeMitra && !loading) {
+      const existing = conversations.find(
+        c => parseInt(c.idMitra) === parseInt(location.state.idMitra) && c.tipeMitra === location.state.tipeMitra
+      );
+      if (existing) {
+        setSelected({
+          id: `conv-${existing.id}`,
+          idPercakapan: existing.id,
+          idMitra: existing.idMitra,
+          tipeMitra: existing.tipeMitra,
+          nama: existing.nama,
+          foto: existing.foto
+        });
+      } else {
+        setSelected({
+          id: `new-${location.state.tipeMitra}-${location.state.idMitra}`,
+          idPercakapan: null,
+          idMitra: location.state.idMitra,
+          tipeMitra: location.state.tipeMitra,
+          nama: location.state.nama,
+          foto: location.state.foto
+        });
+      }
+    }
+  }, [location.state, conversations, loading]);
+
   const selectedRef = useRef(selected);
   selectedRef.current = selected;
 
